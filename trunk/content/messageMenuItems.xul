@@ -1,0 +1,11 @@
+﻿<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://griffin/skin/overlay.css" type="text/css"?>
+<!DOCTYPE overlay SYSTEM "chrome://griffin/locale/overlay.dtd">
+<overlay id="gfn-overlay-MenuItems"
+    xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <menubar id="mail-menubar">
+    <menu id="gfn_bttns">
+      <menuitem id="gfn_testButton">Test!</menuitem>
+    </menu>
+  </menubar>
+</overlay>

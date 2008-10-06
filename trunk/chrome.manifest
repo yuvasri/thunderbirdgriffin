@@ -1,0 +1,6 @@
+content griffin content/
+overlay chrome://messenger/content/messenger.xul chrome://griffin/content/overlay.xul
+
+locale griffin en-US locale/en-US/
+
+skin griffin classic/1.0 skin/

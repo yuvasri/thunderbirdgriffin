@@ -1,0 +1,4 @@
+﻿var GriffinCommon = {
+    addMessageToSalesforce: function(){
+    }
+};
