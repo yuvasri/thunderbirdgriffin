@@ -56,14 +56,17 @@
   </ProjectExtensions>
   <ItemGroup>
     <None Include="chrome.manifest" />
+    <None Include="content\login.xul" />
     <None Include="content\messageMenuItems.xul" />
     <None Include="content\overlay.xul" />
     <None Include="install.rdf" />
     <None Include="locale\en-US\hello.dtd" />
+    <None Include="locale\en-US\login.dtd" />
     <None Include="locale\en-US\overlay.dtd" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="content\connection-yui.js" />
+    <Content Include="content\login.js" />
     <Content Include="content\overlay.js" />
     <Content Include="content\prototype_yui.js" />
     <Content Include="content\GriffinCommon.js" />
