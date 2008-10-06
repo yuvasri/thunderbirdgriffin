@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<window id="gfn_login"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        xmlns:nc="http://home.netscape.com/NC-rdf#"
+        title="&login.title;"
+        screenX="10" screenY="10"
+        persist="width height screenX screenY sizemode">
+  <commandset>
+    <command id="login" oncommand="GriffinLogin.login();"></command>
+  </commandset>
+  <label control="username">&login.username;</label>
+  <textbox id="username"></textbox>
+  <label control="password">&login.password;</label>
+  <textbox id="password"></textbox>
+  <button id="submit" command="login"></button>
+</window>
