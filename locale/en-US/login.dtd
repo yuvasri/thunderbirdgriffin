@@ -1,3 +1,4 @@
 ﻿<!ENTITY login.title "Login">
 <!ENTITY login.username "Username">
 <!ENTITY login.password "Password">
+<!ENTITY login.url "Url">

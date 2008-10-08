@@ -11,6 +11,9 @@
         height="150"
         width="250"
         persist="width height screenX screenY">
+
+  <script src="chrome://griffin/content/login.js"></script>
+  
   <vbox id="gfn_loginWrapper" flex="1">
     <label control="username">&login.username;</label>
     <textbox id="username"></textbox>
