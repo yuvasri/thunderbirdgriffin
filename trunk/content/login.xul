@@ -1,16 +1,23 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml-stylesheet href="chrome://griffin/skin/login.css" type="text/css"?>
+
+<!DOCTYPE window SYSTEM "chrome://griffin/locale/login.dtd">
 <window id="gfn_login"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns:nc="http://home.netscape.com/NC-rdf#"
         title="&login.title;"
-        screenX="10" screenY="10"
-        persist="width height screenX screenY sizemode">
-  <commandset>
-    <command id="login" oncommand="GriffinLogin.login();"></command>
-  </commandset>
-  <label control="username">&login.username;</label>
-  <textbox id="username"></textbox>
-  <label control="password">&login.password;</label>
-  <textbox id="password"></textbox>
-  <button id="submit" command="login"></button>
+        screenX="100"
+        screenY="100"
+        height="150"
+        width="250"
+        persist="width height screenX screenY">
+  <vbox id="gfn_loginWrapper" flex="1">
+    <label control="username">&login.username;</label>
+    <textbox id="username"></textbox>
+    <label control="password">&login.password;</label>
+    <textbox id="password"></textbox>
+    <label control="url">&login.url;</label>
+    <textbox id="url"></textbox>
+    <button id="submit" oncommand="GriffinLogin.login();"></button>
+  </vbox>
 </window>

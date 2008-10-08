@@ -1,14 +1,13 @@
 ﻿var GriffinMessage = {  
     onLoad: function(){
-        alert('Javascript successfully injected.');
     },
   
-    addMessageToSalesforce: function(){
-        alert('Adding Message to salesforce...');
+    addMessageToSalesforce: function(e){
         if(sforce.Connection.sessionId == null){
-            // TODO: Globalise title.
-            alert('Please Login...');
-            var winLogin = window.openDialog('chrome://griffin/content/login.xul', 'login', 'modal');
+            toOpenWindowByType('griffin:login', 'chrome://griffin/content/login.xul');
+        }        
+        if(sforce.Connection.sessionId == null){
+            return;
         }
     }
 };

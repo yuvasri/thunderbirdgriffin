@@ -57,7 +57,6 @@
   <ItemGroup>
     <None Include="chrome.manifest" />
     <None Include="content\login.xul" />
-    <None Include="content\messageMenuItems.xul" />
     <None Include="content\overlay.xul" />
     <None Include="install.rdf" />
     <None Include="locale\en-US\hello.dtd" />
@@ -70,6 +69,7 @@
     <Content Include="content\overlay.js" />
     <Content Include="content\prototype_yui.js" />
     <Content Include="content\GriffinCommon.js" />
+    <Content Include="skin\login.css" />
     <Content Include="skin\mainicon.png" />
     <Content Include="skin\overlay.css" />
   </ItemGroup>
