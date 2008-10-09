@@ -3,3 +3,9 @@
 @import url("chrome://global/skin/toolbar.css");
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+.lblErr
+{
+	color: Red;
+	font-size: small;
+}
