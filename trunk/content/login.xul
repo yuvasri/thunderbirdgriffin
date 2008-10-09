@@ -9,7 +9,7 @@
         screenX="100"
         screenY="100"
         height="150"
-        width="250"
+        width="200"
         persist="width height screenX screenY">
 
   <script src="chrome://griffin/content/login.js"></script>
@@ -18,9 +18,10 @@
     <label control="username">&login.username;</label>
     <textbox id="username"></textbox>
     <label control="password">&login.password;</label>
-    <textbox id="password"></textbox>
+    <textbox type="password" id="password"></textbox>
     <label control="url">&login.url;</label>
     <textbox id="url"></textbox>
-    <button id="submit" oncommand="GriffinLogin.login();"></button>
+    <button id="submit" oncommand="GriffinLogin.login();">&login.login;</button>
+    <label id="errMsg" class="lblErr"></label>
   </vbox>
 </window>

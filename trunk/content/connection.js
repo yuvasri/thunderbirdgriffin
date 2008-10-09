@@ -1017,6 +1017,7 @@ sforce.SoapTransport.prototype.send = function(url, writer, isArray, connectionC
     if (this.isAsync) {
         this.connectionCallback = connectionCallback;
         transport.send(writer.toString(), this, this.isAsync, connectionCallback.timeout);
+        return null;
     } else {
         transport.send(writer.toString(), this, this.isAsync);
         if (this.fault !== null) {
@@ -1630,7 +1631,7 @@ sforce.ProcessWorkitemRequest.prototype = new sforce.Xml("actions");
 sforce.ProcessWorkitemRequest.prototype._xsiType = "ProcessWorkitemRequest";
 /* set up connection */
 sforce.connection = new sforce.Connection();
-sforce.connection.serverUrl = "/services/Soap/u/9.0";
+sforce.connection.serverUrl = "https://www.salesforce.com/services/Soap/u/9.0";
 
 if (typeof(__sfdcSessionId) != "undefined") {
     sforce.connection.sessionId = __sfdcSessionId;
