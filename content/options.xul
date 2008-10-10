@@ -21,31 +21,19 @@
     <tabpanels>
       <tabpanel id="gfn_tpContact">
         <vbox>
-          <listbox flex="1">
+          <!-- Listitems are scripted into this box on load. -->
+          <listbox id="gfn_lbContactFields" flex="1">
 
             <listhead>
-              <listheader label="Salesforce Field"/>
               <listheader label="Address Book Field"/>
+              <listheader label="Salesforce Field"/>
+              <listheader label="Relation Strength"/>
             </listhead>
-
             <listcols>
               <listcol flex="1"/>
               <listcol flex="1"/>
+              <listcol flex="1"/>
             </listcols>
-
-            <listitem>
-              <listcell label="George"/>
-              <listcell label="House Painter"/>
-            </listitem>
-            <listitem>
-              <listcell label="Mary Ellen"/>
-              <listcell label="Candle Maker"/>
-            </listitem>
-            <listitem>
-              <listcell label="Roger"/>
-              <listcell label="Swashbuckler"/>
-            </listitem>
-
           </listbox>
 
         </vbox>
