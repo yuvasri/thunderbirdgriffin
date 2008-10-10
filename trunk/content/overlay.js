@@ -22,6 +22,10 @@
             tasks.push(task);
         }
         sforce.connection.create(tasks);
+    },
+    
+    openOptions: function(e){
+        window.open('chrome://griffin/content/options.xul', '_blank', 'chrome,extrachrome');
     }
 };
 
