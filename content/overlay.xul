@@ -9,7 +9,7 @@
   <menubar id="mail-menubar">
     <menu id="gfn_bttns" label="Griffin">
       <menupopup id="gfn_GriffinMenuPopup">
-        <menuitem id="gfn_Options" label="Options..."></menuitem>
+        <menuitem id="gfn_Options" label="Options..." oncommand="GriffinMessage.openOptions(event);"></menuitem>
       </menupopup>
     </menu>
   </menubar>

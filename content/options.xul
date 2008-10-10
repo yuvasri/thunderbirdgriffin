@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml-stylesheet href="chrome://griffin/skin/options.css" type="text/css"?>
+<!DOCTYPE window SYSTEM "chrome://griffin/locale/options.dtd">
+
+<window id="gfn_options"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        xmlns:nc="http://home.netscape.com/NC-rdf#"
+        title="&options.title;"
+        screenX="100"
+        screenY="110"
+        height="400"
+        width="400"
+        persist="width height screenX screenY">
+
+  <script src="chrome://griffin/content/options.js"></script>
+  <tabbox>
+    <tabs>
+      <tab id="gfn_tbContact" label="&tabTitle.contact;"></tab>
+      <tab id="gfn_tbTask" label="&tabTitle.task;"></tab>
+    </tabs>
+    <tabpanels>
+      <tabpanel id="gfn_tpContact">
+        <vbox>
+          <listbox flex="1">
+
+            <listhead>
+              <listheader label="Salesforce Field"/>
+              <listheader label="Address Book Field"/>
+            </listhead>
+
+            <listcols>
+              <listcol flex="1"/>
+              <listcol flex="1"/>
+            </listcols>
+
+            <listitem>
+              <listcell label="George"/>
+              <listcell label="House Painter"/>
+            </listitem>
+            <listitem>
+              <listcell label="Mary Ellen"/>
+              <listcell label="Candle Maker"/>
+            </listitem>
+            <listitem>
+              <listcell label="Roger"/>
+              <listcell label="Swashbuckler"/>
+            </listitem>
+
+          </listbox>
+
+        </vbox>
+      </tabpanel>
+      <tabpanel>TASK!!!</tabpanel>
+    </tabpanels>
+  </tabbox>
+</window>
