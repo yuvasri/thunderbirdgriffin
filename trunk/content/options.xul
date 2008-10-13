@@ -38,7 +38,9 @@
 
         </vbox>
       </tabpanel>
-      <tabpanel>TASK!!!</tabpanel>
+      <tabpanel>
+        
+      </tabpanel>
     </tabpanels>
   </tabbox>
 </window>

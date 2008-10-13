@@ -65,6 +65,7 @@
     <None Include="locale\en-US\login.dtd" />
     <None Include="locale\en-US\options.dtd" />
     <None Include="locale\en-US\overlay.dtd" />
+    <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="content\connection.js" />

@@ -8,8 +8,8 @@
         <WebProjectProperties>
           <StartPageUrl>
           </StartPageUrl>
-          <StartAction>CurrentPage</StartAction>
-          <AspNetDebugging>True</AspNetDebugging>
+          <StartAction>Program</StartAction>
+          <AspNetDebugging>False</AspNetDebugging>
           <NativeDebugging>False</NativeDebugging>
           <SQLDebugging>False</SQLDebugging>
           <PublishCopyOption>RunFiles</PublishCopyOption>
@@ -17,8 +17,7 @@
           </PublishTargetLocation>
           <PublishDeleteAllFiles>False</PublishDeleteAllFiles>
           <PublishCopyAppData>True</PublishCopyAppData>
-          <ExternalProgram>
-          </ExternalProgram>
+          <ExternalProgram>C:\Program Files\Mozilla Thunderbird\thunderbird.exe</ExternalProgram>
           <StartExternalURL>
           </StartExternalURL>
           <StartCmdLineArguments>
