@@ -18,9 +18,7 @@
                     // This contains the actual password...
                     var pass = e.getNext().QueryInterface(Components.interfaces.nsIPassword);
                     if (pass.host == queryString) {
-                         // found it!
-                         alert(pass.user); // the username
-                         alert(pass.password); // the password
+                         // found it! (Hopefully!!)
                          try{
                             var loginResult = sforce.connection.login(pass.user, pass.password);
                             sforce.connection.serverUrl = loginResult.serverUrl;
@@ -49,6 +47,7 @@
 
         var tasks = [];
         for(var i = 0; i < messages.length; i++){
+            var MessageURI = messages[i];
             var content = "";            
             var MsgService = messenger.messageServiceFromURI(MessageURI);
             var MsgStream =  Components.classes["@mozilla.org/network/sync-stream-listener;1"].createInstance();
@@ -66,7 +65,7 @@
               content = content + ScriptInputStream .read(512);
             }
             var task = new sforce.SObject('Task');
-            var hdr = messenger.msgHdrFromURI(messages[i]);
+            var hdr = messenger.msgHdrFromURI(MessageURI);
             task.Description = content;
             task.Subject = hdr.subject;
             tasks.push(task);
@@ -88,7 +87,6 @@
            synchContactDir == 'SYNCHFROMSFDC' ||
            synchContactDir == 'UPDATEFROMSFDC')
         {
-            var searchSession = Components.classes[searchSessionContractID].createInstance(Components.interfaces.nsIMsgSearchSession);
             var lastUpdate = GriffinCommon.getOptionVal("LastSynch");
             GriffinCommon.log(lastUpdate);
             var now = new Date();
@@ -112,18 +110,10 @@
             finally{
                 statement.reset();
             }
+            var ab = 
             for(var i = 0; i < records.length; i++){
                 var currContact = sforce.connection.retrieve(retrieveFields, "Contact", records[i]);
-                var searchTerm = searchSession.createTerm();
-                var value = searchTerm.value;
-                value.str = aValue;
-                searchTerm.value = value;
-
-                searchTerm.op = searchSession.BooleanOR;
-                searchTerm.booleanAnd = false;
-
-                searchSession.appendTerm(searchTerm);
-                searchSession.search(null);
+                
             }
         }
     }
