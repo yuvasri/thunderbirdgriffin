@@ -11,21 +11,22 @@
     <menu id="gfn_bttns" label="Griffin">
       <menupopup id="gfn_GriffinMenuPopup">
         <menuitem id="gfn_Options" label="Options..." oncommand="GriffinMessage.openOptions(event);"></menuitem>
-        <menuitem id="gfn_SynchContacts" label="Synchronise Address Book" oncommand="GriffinMessage.synchContacts()"></menuitem>
+        <menuitem id="gfn_SynchContacts" label="Synchronise Address Book" oncommand="GriffinMessage.synchContacts();"></menuitem>
       </menupopup>
     </menu>
   </menubar>
 
   <popup id="threadPaneContext">
     <menuseparator id="gfn_THRD_GriffinContextFunctions"/>
-    <menuitem id="gfn_THRD_AddToSalesforce" label="THRD! Add to salesforce..." oncommand="GriffinMessage.addMessageToSalesforce(event);"></menuitem>
+    <menuitem id="gfn_THRD_AddToSalesforce" label="Add to salesforce" oncommand="GriffinMessage.addMessageToSalesforce(event);"></menuitem>
   </popup>
 
   <popup id="messagePaneContext">
     <menuseparator id="gfn_MSG_GriffinContextFunctions" position="20"/>
-    <menuitem id="gfn_MSG_AddToSalesforce" label="MSG! Add to salesforce..." position="21"></menuitem>
+    <menuitem id="gfn_MSG_AddToSalesforce" label="Add to salesforce" position="21"></menuitem>
   </popup>
 
+  <!-- 
   <popup id="folderPaneContext">
     <menuitem id="folderPaneContext-openNewWindow" position="1"/>
     <menuitem id="folderPaneContext-searchMessages" position="2"/>
@@ -51,7 +52,7 @@
     
     <menuseparator id="gfn_FLDR_GriffinContextFunctions" position="19"/>
     <menuitem id="gfn_FLDR_AddToSalesforce" label="FLDR! Add to salesforce..." position="20"></menuitem>
-  </popup>
+  </popup>-->
   
   <statusbar id="status-bar">
     <statusbarpanel id="gfn_status" label="Griffin Panel!">
