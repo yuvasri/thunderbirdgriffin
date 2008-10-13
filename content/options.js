@@ -76,14 +76,7 @@
             gfn_lbContactFields.appendChild(li);
         }
         // Database retreive to add saved options.
-        var MY_ID = "griffin@mpbsoftware.com";
-        var em = Components.classes["@mozilla.org/extensions/manager;1"].
-                 getService(Components.interfaces.nsIExtensionManager);
-        // the path may use forward slash ("/") as the delimiter
-        var file = em.getInstallLocation(MY_ID).getItemFile(MY_ID, "griffin.sqlite");
-        var storageService = Components.classes["@mozilla.org/storage/service;1"]
-                        .getService(Components.interfaces.mozIStorageService);
-        var mDBConn = storageService.openDatabase(file);
+        var mDBConn = GriffinCommon.getDbConnection();
         var statement = mDBConn.createStatement("SELECT tbirdField, sfdcField, strength FROM FieldMap WHERE object = 'Contact'");
         try {
             while (statement.executeStep()) {

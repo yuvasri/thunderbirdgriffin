@@ -2,16 +2,18 @@
     login: function(){
         var username = document.getElementById('username').value;
         var password = document.getElementById('password').value;
+        var url = document.getElementById('url').value;
         try{
+            window.opener.sforce.connection.serverUrl = url;
             var loginResult = window.opener.sforce.connection.login(username, password);
             window.opener.sforce.connection.serverUrl = loginResult.serverUrl;
+            if(document.getElementById('rememberMe').checked){                
+                var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
+                passwordManager.addUser(url, username, password);
+            }
             self.close();
        } catch(error) {
-            var consoleService = Components.classes["@mozilla.org/consoleservice;1"].
-                getService(Components.interfaces.nsIConsoleService);
-
-            consoleService.logStringMessage(error);
-            
+            GriffinCommon.log(error);            
             var lbl = document.getElementById('errMsg');
             var text = 'Unknown error whilst logging in.';
             if(error.detail)
@@ -26,5 +28,11 @@
                 lbl.appendChild(messageNode);
             }
        }       
+    },
+    
+    onLoad: function(){
+        document.getElementById('url').value = window.opener.sforce.connection.serverUrl;
     }
 };
+
+window.addEventListener('load', GriffinLogin.onLoad, false);

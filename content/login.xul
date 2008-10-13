@@ -22,6 +22,7 @@
     <label control="url">&login.url;</label>
     <textbox id="url"></textbox>
     <button id="submit" oncommand="GriffinLogin.login();" label="&login.login;"></button>
+    <checkbox id="rememberMe"></checkbox>
     <label id="errMsg" class="lblErr"></label>
   </vbox>
 </window>
