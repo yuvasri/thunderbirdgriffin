@@ -13,6 +13,7 @@
         persist="width height screenX screenY">
 
   <script src="chrome://griffin/content/options.js"></script>
+  <script src="chrome://griffin/content/GriffinCommon.js" type="text/javascript"></script>
   <tabbox>
     <tabs>
       <tab id="gfn_tbContact" label="&tabTitle.contact;"></tab>

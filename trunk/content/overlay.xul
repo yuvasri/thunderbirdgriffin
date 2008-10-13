@@ -4,12 +4,14 @@
     xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
   <script src="chrome://griffin/content/connection.js" type="text/javascript"></script>
+  <script src="chrome://griffin/content/GriffinCommon.js" type="text/javascript"></script>
   <script src="chrome://griffin/content/overlay.js" type="text/javascript"></script>
   
   <menubar id="mail-menubar">
     <menu id="gfn_bttns" label="Griffin">
       <menupopup id="gfn_GriffinMenuPopup">
         <menuitem id="gfn_Options" label="Options..." oncommand="GriffinMessage.openOptions(event);"></menuitem>
+        <menuitem id="gfn_SynchContacts" label="Synchronise Address Book" oncommand="GriffinMessage.synchContacts()"></menuitem>
       </menupopup>
     </menu>
   </menubar>

@@ -1,5 +1,37 @@
 ﻿var GriffinCommon = {
-    addMessageToSalesforce: function(){
+    extensionId: "griffin@mpbsoftware.com",
+    databasefile: "griffin.sqlite",
+    
+    // Get a connection to the database used for storing settings.
+    // TODO: Cache connection??
+    getDbConnection: function(){    
+        var em = Components.classes["@mozilla.org/extensions/manager;1"].
+                 getService(Components.interfaces.nsIExtensionManager);
+        var file = em.getInstallLocation(GriffinCommon.extensionId).getItemFile(GriffinCommon.extensionId, GriffinCommon.databasefile);
+        var storageService = Components.classes["@mozilla.org/storage/service;1"]
+                        .getService(Components.interfaces.mozIStorageService);
+        return storageService.openDatabase(file);
+    },
+    
+    getOptionVal: function(option){
+        var retVal = null;
+        var connection = getDbConnection();
+        var command = connection.createStatement("SELECT Value FROM Option WHERE Name = ?1");
+        try{
+            command.bindUTF8StringParameter(0, option);
+            if(statement.executeStep() && !statement.getIsNull(0)){
+            
+                retVal = statement.getUTF8String(0);
+            }      
+        }
+        finally {
+            command.reset();
+        }
+    },
+    
+    log: function(msg){       
+        var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
+        consoleServicelogStringMessage(msg);
     },
         
     getPrefValue: function(pref, type) {
