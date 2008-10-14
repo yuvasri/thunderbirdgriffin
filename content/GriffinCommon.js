@@ -14,14 +14,13 @@
     },
     
     getOptionVal: function(option){
-        var retVal = null;
-        var connection = getDbConnection();
+        var connection = GriffinCommon.getDbConnection();
         var command = connection.createStatement("SELECT Value FROM Option WHERE Name = ?1");
         try{
             command.bindUTF8StringParameter(0, option);
-            if(statement.executeStep() && !statement.getIsNull(0)){
+            if(command.executeStep() && !command.getIsNull(0)){
             
-                retVal = statement.getUTF8String(0);
+                return command.getUTF8String(0);
             }      
         }
         finally {
@@ -31,7 +30,7 @@
     
     log: function(msg){       
         var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
-        consoleServicelogStringMessage(msg);
+        consoleService.logStringMessage(msg);
     },
         
     getPrefValue: function(pref, type) {
@@ -60,6 +59,9 @@
             case "float": prefs.setCharPref(pref, value);
             default: prefs.setCharPref(pref, value);
         }
+    },
+    
+    scoreCard: function(contact, card){
+        return 0;
     }
-
 };

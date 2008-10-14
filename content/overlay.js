@@ -4,8 +4,7 @@
     
     ensureLogin: function(){        
         if(sforce.connection.sessionId == null){
-            var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"]
-                                .getService(Components.interfaces.nsIPasswordManager);
+            var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
                                 
              // the host name of the password we are looking for
             var queryString = sforce.connection.serverUrl;
@@ -42,80 +41,161 @@
         if(!GriffinMessage.ensureLogin()){
             return;
         }
-        // TODO: Find out where GetSelectedMessages is defined??
+        // TODO: Use configured task mapping instead of hardcoding.
         var messages = GetSelectedMessages();
-
         var tasks = [];
         for(var i = 0; i < messages.length; i++){
-            var MessageURI = messages[i];
-            var content = "";            
-            var MsgService = messenger.messageServiceFromURI(MessageURI);
-            var MsgStream =  Components.classes["@mozilla.org/network/sync-stream-listener;1"].createInstance();
-            var consumer = MsgStream.QueryInterface(Components.interfaces.nsIInputStream);
-            var ScriptInput = Components.classes["@mozilla.org/scriptableinputstream;1"].createInstance();
-            var ScriptInputStream = ScriptInput.QueryInterface(Components.interfaces.nsIScriptableInputStream);
-            ScriptInputStream.init(consumer);
-            try {
-              MsgService.streamMessage(MessageURI, MsgStream, msgWindow, null, false, null);
-            } catch (ex) {
-              alert("error: "+ex)
-            }
-            ScriptInputStream .available();
-            while (ScriptInputStream .available()) {
-              content = content + ScriptInputStream .read(512);
-            }
+            var messageURI = messages[i];
+            var hdr = messenger.msgHdrFromURI(messageURI);
             var task = new sforce.SObject('Task');
-            var hdr = messenger.msgHdrFromURI(MessageURI);
-            task.Description = content;
+            task.Description = getContentFromMessageURI(messageURI);
             task.Subject = hdr.subject;
             tasks.push(task);
         }
         sforce.connection.create(tasks);
-
+    },
+    
+    getContentFromMessageURI: function(uri){   
+        var content = "";
+        var MsgService = messenger.messageServiceFromURI(uri);
+        var MsgStream =  Components.classes["@mozilla.org/network/sync-stream-listener;1"].createInstance();
+        var consumer = MsgStream.QueryInterface(Components.interfaces.nsIInputStream);
+        var ScriptInput = Components.classes["@mozilla.org/scriptableinputstream;1"].createInstance();
+        var ScriptInputStream = ScriptInput.QueryInterface(Components.interfaces.nsIScriptableInputStream);
+        ScriptInputStream.init(consumer);
+        try {
+          MsgService.streamMessage(uri, MsgStream, msgWindow, null, false, null);
+        } catch (ex) {
+          GriffinCommon.log("error while getting message content: " + ex)
+        }
+        ScriptInputStream.available();
+        while (ScriptInputStream .available()) {
+          content = content + ScriptInputStream.read(512);
+        }
+        return content;
     },
     
     openOptions: function(e){
         window.open('chrome://griffin/content/options.xul', '_blank', 'chrome,extrachrome');
     },
     
+    getContactFieldMap: function(){    
+        var connection = GriffinCommon.getDbConnection();
+        var statement = connection.createStatement("SELECT tBirdField, sfdcField FROM FieldMap WHERE object = 'Contact'");
+        var fieldMap = [];
+        try{
+            while(statement.executeStep()){
+                var s_tBirdField = statement.getUTF8String(0);
+                var s_sfdcField = statement.getUTF8String(1);
+                fieldMap.push( { tBirdField: s_tBirdField, sfdcField: s_sfdcField });
+            }
+            return fieldMap;
+        }
+        finally{
+            statement.reset();
+        }
+    },
+    
+    // TODO: Undirty-ify the padLeft function.
+    padLeft: function(inString, padChar, targetLen){
+        while(inString.length < targetLen){
+            inString = padChar + inString;
+        }
+        return inString;
+    },
+    
+    formatDateSfdc: function(inDate){
+        var year = GriffinMessage.padLeft(inDate.getUTCFullYear().toString(), "0", 4);
+        // Gotcha! getMonth runs from 0-11, so add one to result!
+        var month = GriffinMessage.padLeft((inDate.getUTCMonth() + 1).toString(), "0", 2); 
+        var day = GriffinMessage.padLeft(inDate.getUTCDate().toString(), "0", 2);
+        var hour = GriffinMessage.padLeft(inDate.getUTCHours().toString(), "0", 2);
+        var minute = GriffinMessage.padLeft(inDate.getUTCMinutes().toString(), "0", 2);
+        var second = GriffinMessage.padLeft(inDate.getUTCSeconds().toString(), "0", 2);
+        return year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second + "Z";
+    },
+    
     synchContacts: function(){
-        if(!GriffinMessage.ensureLogin()){
+        if(!GriffinMessage.ensureLogin()) {
             return;
         }
-        var synchContactDir = GriffinCommon.getOptionVal("SynchContactDir"); 
+        var synchContactDir = GriffinCommon.getOptionVal("SynchContactDir");
         if(synchContactDir == 'SYNCHBOTH' ||
            synchContactDir == 'SYNCHFROMSFDC' ||
-           synchContactDir == 'UPDATEFROMSFDC')
-        {
-            var lastUpdate = GriffinCommon.getOptionVal("LastSynch");
-            GriffinCommon.log(lastUpdate);
+           synchContactDir == 'UPDATEFROMSFDC') {
+            var fieldMap = GriffinMessage.getContactFieldMap();
+            var retreiveFields = "";
+            for(var i = 0; i < fieldMap.length; i++){
+                if(i > 0)
+                    retreiveFields += ",";
+                retreiveFields += fieldMap[i].sfdcField;
+            }
             var now = new Date();
-            var result = sforce.connection.getUpdated("Contact", lastUpdate, now);
-            var records = result.getArray("ids");
-            var connection = GriffinCommon.getDbConnection();
-            var statement = connection.createStatement("SELECT tBirdField, sfdcField FROM FieldMap WHERE object = 'Contact'");
-            var retrieveFields = "";
-            var fieldMap = {};
-            try{
-                while(statement.executeStep()){
-                    if(retrieveFields.length > 0){
-                        retrieveFields += ",";
-                    }
-                    var tBirdField = statement.getUTF8String(0);
-                    var sfdcField = statement.getUTF8String(1);
-                    retrieveFields += sfdcField;
-                    fieldMap[sfdcField] = tBirdField;
+            var lastUpdateDate = new Date();
+            lastUpdateDate.setTime(GriffinCommon.getOptionVal("LastSynch"));
+            // If more than 30 days since last synch, can't use getUpdated. Go for a full blown SOQL query.
+            var millisPerDay = 24 * 60 * 60 * 1000;
+            var contacts = null;
+            if((now.getTime() - lastUpdateDate.getTime()) > (30 * millisPerDay)){
+                // TODO: Security. Limited SOQL injection possible?? Would only crash out probably.
+                contacts = sforce.connection.query("SELECT " + retreiveFields + " FROM Contact WHERE LastModifiedDate > " + GriffinMessage.formatDateSfdc(lastUpdateDate));
+            }
+            else{
+                result = sforce.connection.getUpdated("Contact", formatDateSfdc(GriffinMessage.lastUpdateDate), now);
+                records = result.getArray("ids");
+                contacts = [];
+                for(var i = 0; i < records.length; i++){
+                    contacts.push(sforce.connection.retrieve(retreiveFields, "Contact", records[i]));
+                }
+            }     
+            // TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
+            // TODO: Synch across multiple address books.
+            var abDirUri = "moz-abmdbdirectory://abook.mab";
+            var directory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(nsIAbDirectory);
+            for(var i = 0; i < contacts.length; i++){
+                var currContact = contacts[i];
+                var cardMatch = GriffinMessage.getCardForContact(currContact, abDirUri);
+                if(cardMatch == null){
+                    GriffinMessage.addCard(currContact, directory, fieldMap);
+                }
+                else{
+                    GriffinMessage.updateCard(currContact, cardMatch, fieldMap);
                 }
             }
-            finally{
-                statement.reset();
-            }
-            var ab = 
-            for(var i = 0; i < records.length; i++){
-                var currContact = sforce.connection.retrieve(retrieveFields, "Contact", records[i]);
-                
-            }
+            // TODO: Update LastSynch.
         }
+    },
+    
+    addCard: function(contact, directory, fieldMap){
+        var newCard = Components.classes["@mozilla.org/addressbook/cardproperty;1"].createInstance(Components.interfaces.nsIAbCard);
+        for(var i = 0; i < fieldMap.length; i++){
+            newCard.setCardValue(fieldMap[i].tBirdField, fieldMap[i].sfdcField);
+        }
+        directory.addCard(newCard);
+    },
+    
+    updateCard: function(contact, card, fieldMap){
+        for(var i = 0; i < fieldMap.length; i++){
+            card.setCardValue(fieldMap[i].tBirdField, fieldMap[i].sfdcField);
+        }
+        directory.modifyCard(card);
+    },
+    
+    getCardForContact: function(contact, currentAbURI){
+        var gSearchSession = Components.classes["@mozilla.org/messenger/searchSession;1"].createInstance(Components.interfaces.nsIMsgSearchSession);
+        gSearchSession.clearScopes();
+        currentAbURI += "?(Custom1,=," + encodeURIComponent(contact.Id) + ")";
+        var directory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(currentAbURI).QueryInterface(nsIAbDirectory);
+        var matches = directory.childCards;
+        while(matches.hasMoreElements()){
+            //TODO: score contacts to get the best match.
+            return matches.getNext(); // Return first result until I figure out the scoring scheme :-)
+        }
+        return null;
+    },
+    
+    getFolderByName: function(fldName){
+        
     }
 };
 
