@@ -12,6 +12,7 @@
         width="200"
         persist="width height screenX screenY">
 
+  <script src="chrome://griffin/content/GriffinCommon.js"></script>
   <script src="chrome://griffin/content/login.js"></script>
   
   <vbox id="gfn_loginWrapper" flex="1">
