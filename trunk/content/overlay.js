@@ -138,7 +138,8 @@
             var contacts = null;
             if((now.getTime() - lastUpdateDate.getTime()) > (30 * millisPerDay)){
                 // TODO: Security. Limited SOQL injection possible?? Would only crash out probably.
-                contacts = sforce.connection.query("SELECT " + retreiveFields + " FROM Contact WHERE LastModifiedDate > " + GriffinMessage.formatDateSfdc(lastUpdateDate));
+                var result = sforce.connection.query("SELECT " + retreiveFields + " FROM Contact WHERE LastModifiedDate > " + GriffinMessage.formatDateSfdc(lastUpdateDate));
+                contacts = result.getArray("records");
             }
             else{
                 result = sforce.connection.getUpdated("Contact", formatDateSfdc(GriffinMessage.lastUpdateDate), now);
@@ -151,7 +152,7 @@
             // TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
             // TODO: Synch across multiple address books.
             var abDirUri = "moz-abmdbdirectory://abook.mab";
-            var directory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(nsIAbDirectory);
+            var directory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(Components.interfaces.nsIAbDirectory);
             for(var i = 0; i < contacts.length; i++){
                 var currContact = contacts[i];
                 var cardMatch = GriffinMessage.getCardForContact(currContact, abDirUri);
@@ -185,17 +186,16 @@
         var gSearchSession = Components.classes["@mozilla.org/messenger/searchSession;1"].createInstance(Components.interfaces.nsIMsgSearchSession);
         gSearchSession.clearScopes();
         currentAbURI += "?(Custom1,=," + encodeURIComponent(contact.Id) + ")";
-        var directory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(currentAbURI).QueryInterface(nsIAbDirectory);
-        var matches = directory.childCards;
-        while(matches.hasMoreElements()){
+        var directory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(currentAbURI).QueryInterface(Components.interfaces.nsIAbDirectory);
+        while(directory.childCards.hasMoreElements()){
             //TODO: score contacts to get the best match.
-            return matches.getNext(); // Return first result until I figure out the scoring scheme :-)
+            return directory.childCards.getNext(); // Return first result until I figure out the scoring scheme :-)
         }
         return null;
     },
     
     getFolderByName: function(fldName){
-        
+        return null;
     }
 };
 
