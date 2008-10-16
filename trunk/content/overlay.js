@@ -183,14 +183,32 @@
     },
     
     getCardForContact: function(contact, currentAbURI){
-        var gSearchSession = Components.classes["@mozilla.org/messenger/searchSession;1"].createInstance(Components.interfaces.nsIMsgSearchSession);
-        gSearchSession.clearScopes();
-        currentAbURI += "?(Custom1,=," + encodeURIComponent(contact.Id) + ")";
-        var directory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(currentAbURI).QueryInterface(Components.interfaces.nsIAbDirectory);
-        while(directory.childCards.hasMoreElements()){
-            //TODO: score contacts to get the best match.
-            return directory.childCards.getNext(); // Return first result until I figure out the scoring scheme :-)
+        var id = contact.Id;
+        var rdfService = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService);
+        // enumerate all of the address books on this system
+        var parentDir = rdfService.GetResource("moz-abdirectory://").QueryInterface(Components.interfaces.nsIAbDirectory);
+        var enumerator = parentDir.childNodes;
+        while (enumerator.hasMoreElements()) {
+            var addrbook = enumerator.getNext();  // an addressbook directory
+            addrbook.QueryInterface(Components.interfaces.nsIAbDirectory);
+            var searchUri= addrbook.directoryProperties.URI + "?(or(Custom1,c," + id + "))";  // search for the contact in this book
+            var directory = rdfService.GetResource(searchUri).QueryInterface(Components.interfaces.nsIAbDirectory);
+            var currentItem = null;
+            try {
+                var ChildCards = directory.childCards;
+                ChildCards.first();
+                currentItem = ChildCards.currentItem();
+            } catch(e) {
+                var ChildCards = directory.childNodes;
+                if (ChildCards.hasMoreElements()){
+                    currentItem = ChildCards.getNext();   
+                }
+            }
+            if(currentItem != null){
+                return currentItem.QueryInterface(Components.interfaces.nsIAbCard);
+            }
         }
+        // Not found in any address book. Return null;
         return null;
     },
     
