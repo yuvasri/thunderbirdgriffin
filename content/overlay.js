@@ -132,7 +132,11 @@
             }
             var now = new Date();
             var lastUpdateDate = new Date();
-            lastUpdateDate.setTime(GriffinCommon.getOptionVal("LastSynch"));
+            var prefTime = GriffinCommon.getPrefValue("lastSynch", "string");
+            if(prefTime == null){
+                prefTime = 1000;
+            }
+            lastUpdateDate.setTime(prefTime);
             // If more than 30 days since last synch, can't use getUpdated. Go for a full blown SOQL query.
             var millisPerDay = 24 * 60 * 60 * 1000;
             var contacts = null;
@@ -142,47 +146,45 @@
                 contacts = result.getArray("records");
             }
             else{
-                result = sforce.connection.getUpdated("Contact", formatDateSfdc(GriffinMessage.lastUpdateDate), now);
-                records = result.getArray("ids");
-                contacts = [];
-                for(var i = 0; i < records.length; i++){
-                    contacts.push(sforce.connection.retrieve(retreiveFields, "Contact", records[i]));
-                }
+                result = sforce.connection.getUpdated("Contact", lastUpdateDate, now);
+                contacts = sforce.connection.retrieve(retreiveFields, "Contact", result.getArray("ids"));
             }     
             // TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
             // TODO: Synch across multiple address books.
             var abDirUri = "moz-abmdbdirectory://abook.mab";
-            var directory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(Components.interfaces.nsIAbDirectory);
+            var defaultDirectory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(Components.interfaces.nsIAbDirectory);
             for(var i = 0; i < contacts.length; i++){
                 var currContact = contacts[i];
-                var cardMatch = GriffinMessage.getCardForContact(currContact, abDirUri);
-                if(cardMatch == null){
-                    GriffinMessage.addCard(currContact, directory, fieldMap);
+                var matchObj = GriffinMessage.getCardForContact(currContact);
+                var newCard = (matchObj == null);
+                var cardMatch = null;
+                if(newCard){
+                    cardMatch = Components.classes["@mozilla.org/addressbook/cardproperty;1"].createInstance(Components.interfaces.nsIAbCard);
                 }
                 else{
-                    GriffinMessage.updateCard(currContact, cardMatch, fieldMap);
+                    cardMatch = matchObj.Card;
+                }
+                GriffinMessage.setProps(cardMatch, fieldMap, currContact);
+                if(newCard){
+                    defaultDirectory.addCard(cardMatch);
+                }
+                else{
+                    cardMatch.editCardToDatabase(matchObj.Directory);
                 }
             }
-            // TODO: Update LastSynch.
+            GriffinCommon.setPrefValue("lastSynch", now.getTime(), "string");
         }
     },
     
-    addCard: function(contact, directory, fieldMap){
-        var newCard = Components.classes["@mozilla.org/addressbook/cardproperty;1"].createInstance(Components.interfaces.nsIAbCard);
+    setProps: function(card, fieldMap, contact){
         for(var i = 0; i < fieldMap.length; i++){
-            newCard.setCardValue(fieldMap[i].tBirdField, fieldMap[i].sfdcField);
+            var tbirdFld = fieldMap[i].tBirdField;
+            var sfdcFld = fieldMap[i].sfdcField;
+            card[tbirdFld] = contact[sfdcFld];
         }
-        directory.addCard(newCard);
     },
     
-    updateCard: function(contact, card, fieldMap){
-        for(var i = 0; i < fieldMap.length; i++){
-            card.setCardValue(fieldMap[i].tBirdField, fieldMap[i].sfdcField);
-        }
-        directory.modifyCard(card);
-    },
-    
-    getCardForContact: function(contact, currentAbURI){
+    getCardForContact: function(contact){
         var id = contact.Id;
         var rdfService = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService);
         // enumerate all of the address books on this system
@@ -205,7 +207,8 @@
                 }
             }
             if(currentItem != null){
-                return currentItem.QueryInterface(Components.interfaces.nsIAbCard);
+                var card = currentItem.QueryInterface(Components.interfaces.nsIAbCard);
+                return {Card: card, Directory: addrbook.directoryProperties.URI};
             }
         }
         // Not found in any address book. Return null;
