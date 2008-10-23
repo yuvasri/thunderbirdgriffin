@@ -56,11 +56,13 @@
   </ProjectExtensions>
   <ItemGroup>
     <None Include="chrome.manifest" />
+    <None Include="content\cardOverlay.xul" />
     <None Include="content\login.xul" />
     <None Include="content\options.xul" />
     <None Include="content\overlay.xul" />
     <None Include="griffin.sqlite" />
     <None Include="install.rdf" />
+    <None Include="locale\en-US\cardOverlay.dtd" />
     <None Include="locale\en-US\hello.dtd" />
     <None Include="locale\en-US\login.dtd" />
     <None Include="locale\en-US\options.dtd" />
@@ -68,12 +70,14 @@
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="content\cardOverlay.js" />
     <Content Include="content\connection.js" />
     <Content Include="content\login.js" />
     <Content Include="content\options.js" />
     <Content Include="content\overlay.js" />
     <Content Include="content\prototype_yui.js" />
     <Content Include="content\GriffinCommon.js" />
+    <Content Include="skin\cardOverlay.css" />
     <Content Include="skin\login.css" />
     <Content Include="skin\mainicon.png" />
     <Content Include="skin\options.css" />

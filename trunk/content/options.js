@@ -63,16 +63,21 @@
         var gfn_lbContactFields = document.getElementById('gfn_lbContactFields');
         for(var i = 0; i < GriffinOptions.abCardProps.length; i++){
             var currCardProp = GriffinOptions.abCardProps[i];
-            var li = document.createElement('listitem');
-            var cell1 = document.createElement('listcell');
-            var cell2 = document.createElement('listcell');
-            var cell3 = document.createElement('listcell');
-            cell1.setAttribute('label', currCardProp);
+            var li = document.createElement('richlistitem');
+            li.setAttribute('id', currCardProp);
+            var hbox = document.createElement('xul:hbox');
+            var cell1 = document.createElement('xul:vbox');
+            var cell2 = document.createElement('xul:vbox');
+            var cell3 = document.createElement('xul:vbox');
+            var lblTbrd = document.createTextNode(currCardProp);
+            cell1.appendChild(lblTbrd);
+            cell3.setAttribute('type', 'text');
             cell2.setAttribute('id', 'sfField_' + currCardProp);
             cell3.setAttribute('id', 'strength_' + currCardProp);
-            li.appendChild(cell1);
-            li.appendChild(cell2);
-            li.appendChild(cell3);
+            hbox.appendChild(cell1);
+            hbox.appendChild(cell2);
+            hbox.appendChild(cell3);
+            li.appendChild(hbox);
             gfn_lbContactFields.appendChild(li);
         }
         // Database retreive to add saved options.
@@ -86,7 +91,7 @@
                 var cellSfdcField = document.getElementById('sfField_' + tbirdField);
                 var cellStrength = document.getElementById('strength_' + tbirdField);
                 cellSfdcField.setAttribute('label', sfdcField);
-                cellStrength.setAttribute('label', strength);
+                cellStrength.value = strength;
             }
         } finally {
           statement.reset();

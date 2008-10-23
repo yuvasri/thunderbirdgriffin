@@ -1,44 +1,9 @@
 ﻿var GriffinMessage = {  
     onLoad: function(){
     },
-    
-    ensureLogin: function(){        
-        if(sforce.connection.sessionId == null){
-            var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
-                                
-             // the host name of the password we are looking for
-            var queryString = sforce.connection.serverUrl;
-            // ask the password manager for an enumerator:
-            var e = passwordManager.enumerator;
-            // step through each password in the password manager until we find the one we want:
-            while (e.hasMoreElements()) {
-                try {
-                    // get an nsIPassword object out of the password manager.
-                    // This contains the actual password...
-                    var pass = e.getNext().QueryInterface(Components.interfaces.nsIPassword);
-                    if (pass.host == queryString) {
-                         // found it! (Hopefully!!)
-                         try{
-                            var loginResult = sforce.connection.login(pass.user, pass.password);
-                            sforce.connection.serverUrl = loginResult.serverUrl;
-                         } catch (e) {
-                            GriffinCommon.log('Stored login for ' + queryString + ' failed with error ' + e);
-                         }
-                         break;
-                    }
-                } catch (ex) {
-                    continue;
-                }
-            }  
-            if(sforce.connection.sessionId == null){                
-                var dialog = window.openDialog('chrome://griffin/content/login.xul', '_blank', 'modal');
-            }
-        }
-        return sforce.connection.sessionId != null;
-    },
   
     addMessageToSalesforce: function(e){
-        if(!GriffinMessage.ensureLogin()){
+        if(!GriffinCommon.ensureLogin()){
             return;
         }
         // TODO: Use configured task mapping instead of hardcoding.
@@ -79,23 +44,6 @@
         window.open('chrome://griffin/content/options.xul', '_blank', 'chrome,extrachrome');
     },
     
-    getContactFieldMap: function(){    
-        var connection = GriffinCommon.getDbConnection();
-        var statement = connection.createStatement("SELECT tBirdField, sfdcField FROM FieldMap WHERE object = 'Contact'");
-        var fieldMap = [];
-        try{
-            while(statement.executeStep()){
-                var s_tBirdField = statement.getUTF8String(0);
-                var s_sfdcField = statement.getUTF8String(1);
-                fieldMap.push( { tBirdField: s_tBirdField, sfdcField: s_sfdcField });
-            }
-            return fieldMap;
-        }
-        finally{
-            statement.reset();
-        }
-    },
-    
     // TODO: Undirty-ify the padLeft function.
     padLeft: function(inString, padChar, targetLen){
         while(inString.length < targetLen){
@@ -116,14 +64,13 @@
     },
     
     synchContacts: function(){
-        if(!GriffinMessage.ensureLogin()) {
+        if(!GriffinCommon.ensureLogin()) {
             return;
         }
-        var synchContactDir = GriffinCommon.getOptionVal("SynchContactDir");
-        if(synchContactDir == 'SYNCHBOTH' ||
-           synchContactDir == 'SYNCHFROMSFDC' ||
-           synchContactDir == 'UPDATEFROMSFDC') {
-            var fieldMap = GriffinMessage.getContactFieldMap();
+        var synchContactDir = GriffinCommon.getPrefValue("SynchContactDir", "string");
+        if(synchContactDir == 'BOTH' ||
+           synchContactDir == 'SFDC') {
+            var fieldMap = GriffinCommon.getContactFieldMap();
             var retreiveFields = "";
             for(var i = 0; i < fieldMap.length; i++){
                 if(i > 0)
