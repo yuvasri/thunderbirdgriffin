@@ -67,7 +67,7 @@
         if(!GriffinCommon.ensureLogin()) {
             return;
         }
-        var synchContactDir = GriffinCommon.getPrefValue("SynchContactDir", "string");
+        var synchContactDir = GriffinCommon.getPrefValue("synchContactDir", "string");
         if(synchContactDir == 'BOTH' ||
            synchContactDir == 'SFDC') {
             var fieldMap = GriffinCommon.getContactFieldMap();
