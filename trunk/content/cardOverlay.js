@@ -12,18 +12,26 @@ var GriffinCard = {
             return;
         }
         
-        var synchContactDir = GriffinCommon.getPrefValue("SynchContactDir", "string");
+        var synchContactDir = GriffinCommon.getPrefValue("synchContactDir", "string");
         if(synchContactDir == "BOTH" ||
             synchContactDir == "TBIRD") {
             // Def: abCardOverlay.js
             // holds the edited version of the card.
             var fieldMap = GriffinCommon.getContactFieldMap();
-            var contact = GriffinCard.setContactVals(gCard, fieldMap);     
-            var result = sforce.connection.upsert("Id", [contact]);
-            if(result[0].getBoolean("success")){
-                 gCard[getIdField(fieldMap)] = result[0].id;
+            var contact = GriffinCard.setContactVals(gEditCard.card, fieldMap);
+            var result;     
+            if(contact.Id.length > 0){
+                result = sforce.connection.update([contact]);
             }
+            else{
+                result = sforce.connection.insert([contact]);
+                if(result[0].getBoolean("success")){
+                    gEditCard[getIdField(fieldMap)] = result[0].id;
+                }
+            }
+            return result[0].getBoolean("success");
         }
+        return true;
     },
     
     getIdField: function(fieldMap){
@@ -47,8 +55,7 @@ var GriffinCard = {
     },
     
     setContactVals: function(card, fieldMap){
-        var topWin = GriffinCard.getFirstOpener();
-        var contact = sforce.SObject("Contact");
+        var contact = new sforce.SObject("Contact");
         for(var i = 0; i < fieldMap.length; i++){
             var currMapping = fieldMap[i];
             contact[currMapping.sfdcField] = card[currMapping.tBirdField];
