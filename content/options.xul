@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <?xml-stylesheet href="chrome://griffin/skin/options.css" type="text/css"?>
-<!DOCTYPE window SYSTEM "chrome://griffin/locale/options.dtd">
+<!DOCTYPE dialog SYSTEM "chrome://griffin/locale/options.dtd">
 
-<window id="gfn_options"
+<dialog id="gfn_options"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns:nc="http://home.netscape.com/NC-rdf#"
         title="&options.title;"
@@ -10,37 +10,23 @@
         screenY="110"
         height="400"
         width="400"
-        persist="width height screenX screenY">
+        persist="width height screenX screenY"
+        ondialogaccept="GriffinOptions.savePrefs">
 
   <script src="chrome://griffin/content/options.js"></script>
   <script src="chrome://griffin/content/GriffinCommon.js" type="text/javascript"></script>
-  <tabbox>
-    <tabs>
-      <tab id="gfn_tbContact" label="&tabTitle.contact;"></tab>
-      <tab id="gfn_tbTask" label="&tabTitle.task;"></tab>
-    </tabs>
-    <tabpanels>
-      <tabpanel id="gfn_tpContact">
-        <vbox>
-          <!-- Listitems are scripted into this box on load. -->
-          <richlistbox id="gfn_lbContactFields" flex="1">
-            <template>
-              
-            </template>
-            <!-- 
-            <listhead>
-              <listheader label="Address Book Field"/>
-              <listheader label="Salesforce Field"/>
-              <listheader label="Relation Strength"/>
-            </listhead>
-            -->
-          </richlistbox>
-
-        </vbox>
-      </tabpanel>
-      <tabpanel>
-        
-      </tabpanel>
-    </tabpanels>
-  </tabbox>
-</window>
+  <listbox id="synchDir" rows="3" flex="1">
+    <listitem label="&option.sychroniseBoth;" id="synchDir_BOTH" value="BOTH"  />
+    <listitem label="&option.fromSFDC;" id="synchDir_SFDC" value="SFDC" />
+    <listitem label="&option.fromTBird;" id="synchDir_TBIRD" value="TBIRD" />
+  </listbox>
+  <checkbox id="synchDeleted" label="Synch Deletions"/>
+  <listbox id="synchOwn" rows="3" flex="1">
+    <listitem label="&option.all;" id="synchOwn_ALL" value="ALL"  />
+    <listitem label="&option.my;" id="synchOwn_ME" value="ME" />
+    <listitem label="&option.team;" id="synchOwn_MYTEAM" value="MYTEAM" />
+  </listbox>
+  <textbox id="synchFreq"></textbox>
+  <button id="reset" label="&button.resetLastSynch;" oncommand="GriffinOptions.resetLastSynch();"/>
+  <description id="errors"></description>
+</dialog>
