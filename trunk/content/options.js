@@ -59,7 +59,7 @@
     'allowRemoteContent'],
     
     setContactList: function(){
-
+        /*
         var gfn_lbContactFields = document.getElementById('gfn_lbContactFields');
         for(var i = 0; i < GriffinOptions.abCardProps.length; i++){
             var currCardProp = GriffinOptions.abCardProps[i];
@@ -96,6 +96,46 @@
         } finally {
           statement.reset();
         }
+        */
+        
+        document.getElementById("synchDeleted").checked = GriffinCommon.getPrefValue("propogateDeletions", "bool");
+        document.getElementById("synchDir").selectedItem = document.getElementById("synchDir_" + GriffinCommon.getPrefValue("synchContactDir", "string"));
+        document.getElementById("synchOwn").selectedItem = document.getElementById("synchOwn_" + GriffinCommon.getPrefValue("synchContactOwnedBy", "string"));
+        document.getElementById("synchFreq").value = GriffinCommon.getPrefValue("synchContactFrequency", "int");
+    },
+    
+    resetLastSynch: function(){
+        GriffinCommon.setPrefValue("lastSynch", "0", "string");
+        alert("Next contact synchronisation will be full!");
+    },
+    
+    displayMessage: function(msg){
+        document.getElementById("errors").nodeValue += msg + "<br>";
+    },
+    
+    validate: function(){
+        document.getElementById("errors").nodeValue = "";
+        var valid = true;
+        
+        // Check Frequency value is an integer.
+        var freq = parseInt(document.getElementById("synchFreq").value);
+        if(isNaN(freq) || freq < 0){
+            valid = false;
+            GriffinOptions.displayMessage("Synch frequency must be a (positive) number.");
+        }
+        
+        return valid;
+    },
+    
+    savePrefs: function(){
+        if(! GriffinOptions.validate()){
+            return false;
+        }   
+        GriffinCommon.setPrefValue("propogateDeletions", document.getElementById("synchDeleted").checked, "bool");
+        GriffinCommon.setPrefValue("synchContactDir", document.getElementById("synchDir").selectedItem.value, "string");
+        GriffinCommon.setPrefValue("synchContactOwnedBy", document.getElementById("synchOwn").selectedItem.value, "string");
+        GriffinCommon.setPrefValue("synchContactFrequency", document.getElementById("synchFreq").value, "int");
+        return true;
     },
     
     onLoad: function() {

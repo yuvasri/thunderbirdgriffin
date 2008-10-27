@@ -1,3 +1,10 @@
 ﻿<!ENTITY options.title "Options">
 <!ENTITY tabTitle.contact "Contact">
 <!ENTITY tabTitle.task "Task">
+<!ENTITY button.resetLastSynch "Full Synch">
+<!ENTITY option.all "All">
+<!ENTITY option.my "My Contacts">
+<!ENTITY option.team "My Team">
+<!ENTITY option.sychroniseBoth "Synchronise both">
+<!ENTITY option.fromSFDC "From Salesforce To Thunderbird Only">
+<!ENTITY option.fromTBird "From Thunderbird To Salesforce Only">

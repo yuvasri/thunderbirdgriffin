@@ -87,9 +87,37 @@
             // If more than 30 days since last synch, can't use getUpdated. Go for a full blown SOQL query.
             var millisPerDay = 24 * 60 * 60 * 1000;
             var contacts = null;
+            var ownershipLimited = GriffinCommon.getPrefValue("synchContactOwnedBy", "string");
             if((now.getTime() - lastUpdateDate.getTime()) > (30 * millisPerDay)){
-                // TODO: Security. Limited SOQL injection possible?? Would only crash out probably.
-                var result = sforce.connection.query("SELECT " + retreiveFields + " FROM Contact WHERE LastModifiedDate > " + GriffinMessage.formatDateSfdc(lastUpdateDate));
+                // Use SOQL to get updated records, as too much time has passed to use getUpdated                
+                var soql = "SELECT " + retreiveFields + " FROM Contact WHERE LastModifiedDate > " + GriffinMessage.formatDateSfdc(lastUpdateDate);
+                if(ownershipLimited == "ME"){
+                    var userInfo = sforce.connection.getUserInfo();
+                    soql += " AND OwnerId = '" + userInfo.Id + "'"; 
+                }
+                if(ownershipLimited == "MYTEAM"){
+                    var userInfo = sforce.connection.getUserInfo();
+                    var roleRes = sforce.connection.retrieve("UserRoleId", "User", [userInfo.Id]);
+                    var teamRoles = [ roleRes.UserRoleId ];
+                    for(var i = 0; i < teamRoles.length; i++){
+                        var childRoles = sforce.connection.query("Select Id from UserRole Where ParentRoleId = '" + teamRoles[i] + "'");
+                        var res = childRoles.getArray('records');
+                        for(var i = 0; i < res.length; i++){
+                            teamRoles.push(res[i].Id);
+                        }
+                    }
+                    soql += " AND Owner.UserRoleId IN ( ";
+                    for(var i = 0; i < teamRoles.length; i++){
+                        if(i > 0){
+                            soql += ','
+                        }
+                        soql += "'" + teamRoles[i] + "'"
+                    }
+                    soql += ")";
+                }
+                // TODO: Security. SOQL injection possible?? Would probably only crash out, but worth checking.
+                var result = sforce.connection.query(soql);
+                    
                 contacts = result.getArray("records");
             }
             else{
