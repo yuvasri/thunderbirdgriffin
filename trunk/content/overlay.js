@@ -41,7 +41,7 @@
     },
     
     openOptions: function(e){
-        window.open('chrome://griffin/content/options.xul', '_blank', 'chrome,extrachrome');
+        window.open('chrome://griffin/content/options.xul', 'options', "chrome,resizable=yes,titlebar");
     },
     
     // TODO: Undirty-ify the padLeft function.

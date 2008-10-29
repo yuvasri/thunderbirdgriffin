@@ -3,7 +3,6 @@ var GriffinCard = {
     onLoad: function(){
         // Def: abCardOverlay.js
         RegisterSaveListener(GriffinCard.saveCardToSFDC);
-        sforce = GriffinCard.getFirstOpener().sforce;
     },
 
     saveCardToSFDC: function(){
@@ -24,9 +23,12 @@ var GriffinCard = {
                 result = sforce.connection.update([contact]);
             }
             else{
-                result = sforce.connection.insert([contact]);
+                result = sforce.connection.create([contact]);
                 if(result[0].getBoolean("success")){
-                    gEditCard[getIdField(fieldMap)] = result[0].id;
+                    gEditCard.card[GriffinCard.getIdField(fieldMap)] = result[0].id;
+                }
+                else{
+                    GriffinCommon.log("failed to create account " + result[0]);
                 }
             }
             return result[0].getBoolean("success");
@@ -41,17 +43,6 @@ var GriffinCard = {
             }
         }
         return null;
-    },
-    
-    getFirstOpener: function(){
-        var last;
-        var opener = window.self;
-        do{
-            last = opener;
-            opener = opener.opener;
-            //alert('opener.location.href: ' + opener.location.href + '\r\nlast.location.href: ' + last.location.href);
-        } while(opener != null && opener.location && opener.location.href != last.location.href);
-        return last;
     },
     
     setContactVals: function(card, fieldMap){

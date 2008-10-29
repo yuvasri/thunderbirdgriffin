@@ -1,6 +1,17 @@
 ﻿var GriffinCommon = {
     extensionId: "griffin@mpbsoftware.com",
-    databasefile: "griffin.sqlite",
+    databasefile: "griffin.sqlite",   
+    
+    getFirstOpener: function(){
+        var last;
+        var opener = window.self;
+        do{
+            last = opener;
+            opener = opener.opener;
+            //alert('opener.location.href: ' + opener.location.href + '\r\nlast.location.href: ' + last.location.href);
+        } while(opener != null && opener.location && opener.location.href != last.location.href);
+        return last;
+    },
     
     ensureLogin: function(){        
         if(sforce.connection.sessionId == null){
@@ -120,3 +131,10 @@
         }
     }
 };
+
+// Make sure sforce connection is available on all pages.
+if(sforce || sforce != null || sforce != undefined){
+}
+else{
+    var sforce = GriffinCommon.getFirstOpener().sforce;
+}
