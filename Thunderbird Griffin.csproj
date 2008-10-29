@@ -83,6 +83,11 @@
     <Content Include="skin\options.css" />
     <Content Include="skin\overlay.css" />
   </ItemGroup>
+  <PropertyGroup>
+    <PostBuildEvent>cd $(ProjectDir)
+del griffin.xpi
+"C:\Program Files\7Zip\7z.exe" -tZIP u griffin.xpi @xpiInclude.txt</PostBuildEvent>
+  </PropertyGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
     <Folder Include="Properties\" />
