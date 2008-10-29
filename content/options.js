@@ -58,46 +58,93 @@
     'mailListURI',
     'allowRemoteContent'],
     
-    setContactList: function(){
-        /*
-        var gfn_lbContactFields = document.getElementById('gfn_lbContactFields');
-        for(var i = 0; i < GriffinOptions.abCardProps.length; i++){
-            var currCardProp = GriffinOptions.abCardProps[i];
-            var li = document.createElement('richlistitem');
-            li.setAttribute('id', currCardProp);
-            var hbox = document.createElement('xul:hbox');
-            var cell1 = document.createElement('xul:vbox');
-            var cell2 = document.createElement('xul:vbox');
-            var cell3 = document.createElement('xul:vbox');
-            var lblTbrd = document.createTextNode(currCardProp);
-            cell1.appendChild(lblTbrd);
-            cell3.setAttribute('type', 'text');
-            cell2.setAttribute('id', 'sfField_' + currCardProp);
-            cell3.setAttribute('id', 'strength_' + currCardProp);
-            hbox.appendChild(cell1);
-            hbox.appendChild(cell2);
-            hbox.appendChild(cell3);
-            li.appendChild(hbox);
-            gfn_lbContactFields.appendChild(li);
+    getSfdcContactFieldsDropDown: function(){
+        if(!GriffinCommon.ensureLogin()){
+            return document.createElement("textbox");
         }
-        // Database retreive to add saved options.
+        var result = sforce.connection.describeSObject("Contact");
+        var menulist = document.createElement("menulist");
+        var menupopup = document.createElement("menupopup");
+        menulist.appendChild(menupopup);
+        var menuitem = document.createElement("menuitem");
+        menuitem.setAttribute("label", "Not Mapped"); // Globalise!
+        menuitem.setAttribute("value", "");
+        menupopup.appendChild(menuitem);
+        for(var i = 0; i < result.fields.length; i++){
+            var currField = result.fields[i];
+            var menuitem = document.createElement("menuitem");
+            menuitem.setAttribute("label", currField.label);
+            menuitem.setAttribute("value", currField.name);
+            menupopup.appendChild(menuitem);
+        }
+        return menulist;
+    },
+    
+    setSelected: function(menulist, val){
+        if(menulist.nodeName == "textbox"){ 
+            menulist.valueOf = val;
+            return;
+        }
+        else{
+            for(var i = 0; i < menulist.firstChild.childNodes.length; ++i){
+                var currItem = menulist.firstChild.childNodes[i];
+                if(currItem.getAttribute("value") == val){
+                    menulist.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+    },
+        
+    setContactList: function(){
+        // Contact field mapping
+        var vBox = document.getElementById('cnctMapping');
         var mDBConn = GriffinCommon.getDbConnection();
-        var statement = mDBConn.createStatement("SELECT tbirdField, sfdcField, strength FROM FieldMap WHERE object = 'Contact'");
-        try {
-            while (statement.executeStep()) {
-                var tbirdField = statement.getString(0);
-                var sfdcField = statement.getString(1);
-                var strength = statement.getDouble(2);
-                var cellSfdcField = document.getElementById('sfField_' + tbirdField);
-                var cellStrength = document.getElementById('strength_' + tbirdField);
-                cellSfdcField.setAttribute('label', sfdcField);
-                cellStrength.value = strength;
+        var statement = mDBConn.createStatement("SELECT sfdcField, strength FROM FieldMap WHERE object = 'Contact' AND tbirdField = ?1");
+        var fieldsDrop = GriffinOptions.getSfdcContactFieldsDropDown();
+        try{
+            for(var i = 0; i < GriffinOptions.abCardProps.length; i++){
+                var currCardProp = GriffinOptions.abCardProps[i];
+                var li = document.createElement('hbox');
+                var label = document.createElement('label');
+                var labelText = document.createTextNode(currCardProp);
+                var spacer = document.createElement('spacer');
+                var ddlField = fieldsDrop.cloneNode(true);
+                var txtStrength = document.createElement('textbox');
+                
+                                
+                // Label props
+                label.appendChild(labelText);
+                spacer.setAttribute('flex', '1');
+                
+                var sfdcField = "";
+                var strength = "";                
+                statement.bindUTF8StringParameter(0, currCardProp);
+                if(statement.executeStep()){
+                    sfdcField = statement.getString(0);
+                    strength = statement.getDouble(1);
+                }
+                statement.reset();
+                
+                // Field setup
+                ddlField.id = "fld_" + currCardProp;
+                GriffinOptions.setSelected(ddlField, sfdcField);
+                
+                // Strength setup
+                txtStrength.id = "str_" + currCardProp;
+                txtStrength.setAttribute('value', strength);
+                
+                li.appendChild(label);
+                li.appendChild(spacer);
+                li.appendChild(ddlField);
+                li.appendChild(txtStrength);
+                vBox.appendChild(li);
             }
         } finally {
           statement.reset();
         }
-        */
         
+        // Other contact options
         document.getElementById("synchDeleted").checked = GriffinCommon.getPrefValue("propogateDeletions", "bool");
         document.getElementById("synchDir").selectedItem = document.getElementById("synchDir_" + GriffinCommon.getPrefValue("synchContactDir", "string"));
         document.getElementById("synchOwn").selectedItem = document.getElementById("synchOwn_" + GriffinCommon.getPrefValue("synchContactOwnedBy", "string"));
@@ -110,7 +157,7 @@
     },
     
     displayMessage: function(msg){
-        document.getElementById("errors").nodeValue += msg + "<br>";
+        document.getElementById("errors").appendChild(document.createTextNode(msg));
     },
     
     validate: function(){
@@ -124,17 +171,51 @@
             GriffinOptions.displayMessage("Synch frequency must be a (positive) number.");
         }
         
+        // TODO: Validate numeric-ness of strength fields.
+        // TODO: Validate strength fields sum to 100??
+        
         return valid;
     },
     
     savePrefs: function(){
         if(! GriffinOptions.validate()){
             return false;
-        }   
+        }
+        
         GriffinCommon.setPrefValue("propogateDeletions", document.getElementById("synchDeleted").checked, "bool");
         GriffinCommon.setPrefValue("synchContactDir", document.getElementById("synchDir").selectedItem.value, "string");
         GriffinCommon.setPrefValue("synchContactOwnedBy", document.getElementById("synchOwn").selectedItem.value, "string");
         GriffinCommon.setPrefValue("synchContactFrequency", document.getElementById("synchFreq").value, "int");
+        
+        // Now update database field mappings.
+        var mDBConn = GriffinCommon.getDbConnection();
+        var rep = mDBConn.createStatement("Replace Into FieldMap (object, tbirdField, sfdcField, strength) Values ('Contact', ?1, ?2, ?3)");
+        var del = mDBConn.createStatement("Delete From FieldMap Where tbirdField = ?1 And object = 'Contact'");
+        try{
+            for(var i = 0; i < GriffinOptions.abCardProps.length; i++){
+                
+                var currCardProp = GriffinOptions.abCardProps[i];
+                var fld = document.getElementById('fld_' + currCardProp).value;
+                var str = document.getElementById('str_' + currCardProp).value;
+                var statement;
+                if(fld.length == 0){
+                    statement = del;
+                }
+                else{
+                    statement = rep;
+                    statement.bindUTF8StringParameter(1, fld);
+                    statement.bindInt32Parameter(2, str);
+                }
+                statement.bindUTF8StringParameter(0, currCardProp);
+                statement.execute();
+                statement.reset();
+            }
+        }
+        finally{
+            // Yes I know I'm resetting one too many times 99.99% of the time - safety first. Sue me.
+            rep.reset();
+            del.reset();
+        }
         return true;
     },
     
