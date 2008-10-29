@@ -1,0 +1,13 @@
+﻿install.rdf
+griffin.sqlite
+chrome.manifest
+content\*.js
+content\*.xul
+skin\*.css
+skin\*.png
+skin\*.gif
+skin\*.jpg
+skin\*.bmp
+skin\*.bmp
+locale\*-*\*.dtd
+locale\??\*.dtd
