@@ -61,6 +61,7 @@
     <None Include="content\options.xul" />
     <None Include="content\overlay.xul" />
     <None Include="griffin.sqlite" />
+    <None Include="griffin.xpi" />
     <None Include="install.rdf" />
     <None Include="locale\en-US\cardOverlay.dtd" />
     <None Include="locale\en-US\hello.dtd" />
@@ -82,6 +83,7 @@
     <Content Include="skin\mainicon.png" />
     <Content Include="skin\options.css" />
     <Content Include="skin\overlay.css" />
+    <Content Include="xpiInclude.txt" />
   </ItemGroup>
   <PropertyGroup>
     <PostBuildEvent>cd $(ProjectDir)

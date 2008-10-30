@@ -15,23 +15,53 @@
 
   <script src="chrome://griffin/content/options.js"></script>
   <script src="chrome://griffin/content/GriffinCommon.js" type="text/javascript"></script>
-  <listbox id="synchDir" rows="3" flex="1">
-    <listitem label="&option.sychroniseBoth;" id="synchDir_BOTH" value="BOTH"  />
-    <listitem label="&option.fromSFDC;" id="synchDir_SFDC" value="SFDC" />
-    <listitem label="&option.fromTBird;" id="synchDir_TBIRD" value="TBIRD" />
-  </listbox>
-  <checkbox id="synchDeleted" label="Synch Deletions"/>
-  <listbox id="synchOwn" rows="3" flex="1">
-    <listitem label="&option.all;" id="synchOwn_ALL" value="ALL"  />
-    <listitem label="&option.my;" id="synchOwn_ME" value="ME" />
-    <listitem label="&option.team;" id="synchOwn_MYTEAM" value="MYTEAM" />
-  </listbox>
-  <textbox id="synchFreq"></textbox>
-  <!-- Items are added to this dynamically on load. -->
-  <vbox id="cnctMapping" flex="1" style="overflow: auto">
-    
-  </vbox>
-  <button id="reset" label="&button.resetLastSynch;" oncommand="GriffinOptions.resetLastSynch();"/>
+  <tabbox  flex="1">
+    <tabs >
+      <tab label="&tabTitle.contact;"     />
+      <tab label="&tabTitle.task;"         />
+    </tabs>
+    <tabpanels flex="1" >
+      <tabpanel>
+        <!-- Contacts panel -->
+        <vbox flex="1">
+          <listbox id="synchDir" rows="3" flex="1">
+            <listitem label="&option.sychroniseBoth;" id="synchDir_BOTH" value="BOTH"  />
+            <listitem label="&option.fromSFDC;" id="synchDir_SFDC" value="SFDC" />
+            <listitem label="&option.fromTBird;" id="synchDir_TBIRD" value="TBIRD" />
+          </listbox>
+          <checkbox id="synchDeleted" label="Synch Deletions"/>
+          <listbox id="synchOwn" rows="3" flex="1">
+            <listitem label="&option.all;" id="synchOwn_ALL" value="ALL"  />
+            <listitem label="&option.my;" id="synchOwn_ME" value="ME" />
+            <listitem label="&option.team;" id="synchOwn_MYTEAM" value="MYTEAM" />
+          </listbox>
+          <textbox id="synchFreq"></textbox>
+          <!-- Items are added to this dynamically on load. -->
+          <vbox id="cnctMapping" flex="1" style="overflow: auto">
+
+          </vbox>
+          <button id="reset" label="&button.resetLastSynch;" oncommand="GriffinOptions.resetLastSynch();"/>
+        </vbox>
+      </tabpanel>
+      <tabpanel>
+        <!-- Tasks Panel -->
+        <vbox>
+          <listbox flex="1" datasources="rdf:mailnewsfolders">
+            <template>
+              <listitem uri="rdf:*" label="Butter Pecan"/>
+            </template>
+          </listbox>
+          <!-- Items are added to this dynamically on load. -->
+          <vbox id="taskMapping" flex="1" style="overflow: auto">
+
+          </vbox>
+        
+      </vbox>
+      </tabpanel>
+    </tabpanels>
+  </tabbox>
+
+
   <description id="errors"></description>
   
 </dialog>
