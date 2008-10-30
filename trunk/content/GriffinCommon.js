@@ -42,10 +42,12 @@
                     continue;
                 }
             }  
+            // No password saved. Login using the dialog box.
             if(sforce.connection.sessionId == null){                
                 var dialog = window.openDialog('chrome://griffin/content/login.xul', '_blank', 'modal');
             }
         }
+        // May have still not logged in (eg cancelled the login dialog).
         return sforce.connection.sessionId != null;
     },
     
@@ -137,4 +139,48 @@ if(sforce || sforce != null || sforce != undefined){
 }
 else{
     var sforce = GriffinCommon.getFirstOpener().sforce;
+}
+
+
+
+// Lifted from http://mb.eschew.org/16#sub_16.7
+function _dumpFactSubtree(ds, sub, level)
+{
+  var iter, iter2, pred, obj, objstr, result="";
+
+  // bail if passed an nsIRDFLiteral or other non-URI
+  try { iter = ds.ArcLabelsOut(sub); }
+  catch (ex) { return; }
+
+  while (iter.hasMoreElements())
+  {
+	pred = iter.getNext().QueryInterface(Ci.nsIRDFResource);
+	iter2 = ds.GetTargets(sub, pred, true);
+
+	while (iter2.hasMoreElements())
+	{
+	  obj = iter2.getNext();
+	  try {
+	obj = obj.QueryInterface(Ci.nsIRDFResource);
+	objstr = obj.Value;
+	  }
+	  catch (ex)
+	  {
+	obj = obj.QueryInterface(Ci.nsIRDFLiteral);
+	objstr = '"' + obj.Value + '"';
+	  }
+
+	  result += level + " " + sub.Value + " , " +
+		pred.Value + " , " + objstr + "\n";
+
+	  result += dumpFactSubtree(ds, obj, level+1);
+	}
+  }
+  return result;
+}
+
+// Lifted from http://mb.eschew.org/16#sub_16.7
+function dumpFromRoot(ds, rootURI)
+{
+  return _dumpFactSubtree(ds, rootURI, 0);
 }

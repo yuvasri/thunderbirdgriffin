@@ -29,13 +29,13 @@
         var ScriptInputStream = ScriptInput.QueryInterface(Components.interfaces.nsIScriptableInputStream);
         ScriptInputStream.init(consumer);
         try {
-          MsgService.streamMessage(uri, MsgStream, msgWindow, null, false, null);
+            MsgService.streamMessage(uri, MsgStream, msgWindow, null, false, null);
         } catch (ex) {
-          GriffinCommon.log("error while getting message content: " + ex)
+            GriffinCommon.log("error while getting message content: " + ex)
         }
         ScriptInputStream.available();
         while (ScriptInputStream .available()) {
-          content = content + ScriptInputStream.read(512);
+            content = content + ScriptInputStream.read(512);
         }
         return content;
     },

@@ -96,7 +96,7 @@
         }
     },
         
-    setContactList: function(){
+    initContactPanel: function(){
         // Contact field mapping
         var vBox = document.getElementById('cnctMapping');
         var mDBConn = GriffinCommon.getDbConnection();
@@ -173,6 +173,7 @@
         
         // TODO: Validate numeric-ness of strength fields.
         // TODO: Validate strength fields sum to 100??
+        // TODO: Validate Id field mapped?
         
         return valid;
     },
@@ -219,8 +220,20 @@
         return true;
     },
     
+    initTaskPanel: function(){
+//        var RDF = Components.classes['@mozilla.org/rdf/rdf-service;1'].getService(); RDF = RDF.QueryInterface(Components.interfaces.nsIRDFService);
+//        var msgaccountmanager = RDF.GetResource("rdf:msgaccountmanager");
+//        var bob = dumpFromRoot(msgaccountmanager, "msgaccounts:/");
+//        GriffinCommon.log(bob);
+        var view = GetDBView();
+        view.doCommand(nsMsgViewCommandType.expandAll);
+        var fldrlocal = view.getFolderForViewIndex(0);
+        var root = fldrlocal.rootFolder;
+    },
+    
     onLoad: function() {
-        GriffinOptions.setContactList();
+        GriffinOptions.initContactPanel();
+        GriffinOptions.initTaskPanel();
     }
     
 };
