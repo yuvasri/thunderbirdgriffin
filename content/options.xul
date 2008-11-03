@@ -13,8 +13,14 @@
         persist="width height screenX screenY"
         ondialogaccept="return GriffinOptions.savePrefs();">
 
-  <script src="chrome://griffin/content/options.js"></script>
-  <script src="chrome://griffin/content/GriffinCommon.js" type="text/javascript"></script>
+
+  <stringbundleset id="stringbundleset">
+    <stringbundle id="bundle_options" src="chrome://griffin/locale/options.properties"/>
+  </stringbundleset>
+
+  <script type="application/x-javascript" src="chrome://griffin/content/options.js"></script>
+  <script type="application/x-javascript" src="chrome://griffin/content/GriffinCommon.js"></script>
+  <script type="application/x-javascript" src="chrome://messenger/content/mailWindow.js"></script>
   <tabbox  flex="1">
     <tabs >
       <tab label="&tabTitle.contact;"     />
@@ -46,16 +52,10 @@
       <tabpanel>
         <!-- Tasks Panel -->
         <vbox>
-          <listbox flex="1" datasources="rdf:mailnewsfolders">
-            <template>
-              <listitem uri="rdf:*" label="Butter Pecan"/>
-            </template>
-          </listbox>
           <!-- Items are added to this dynamically on load. -->
           <vbox id="taskMapping" flex="1" style="overflow: auto">
 
           </vbox>
-        
       </vbox>
       </tabpanel>
     </tabpanels>

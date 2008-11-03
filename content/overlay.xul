@@ -25,37 +25,10 @@
     <menuseparator id="gfn_MSG_GriffinContextFunctions" position="20"/>
     <menuitem id="gfn_MSG_AddToSalesforce" label="Add to salesforce" position="21"></menuitem>
   </popup>
-
-  <!-- 
-  <popup id="folderPaneContext">
-    <menuitem id="folderPaneContext-openNewWindow" position="1"/>
-    <menuitem id="folderPaneContext-searchMessages" position="2"/>
-    <menuitem id="folderPaneContext-subscribe" position="3"/>
-    <menuitem id="folderPaneContext-newsUnsubscribe" position="4"/>
-    <menuitem id="folderPaneContext-copy-location" position="5"/>
-    
-    <menuseparator id="folderPaneContext-sep1" position="6"/>
-    <menuitem id="folderPaneContext-new" position="7"/>
-    <menuitem id="folderPaneContext-remove" position="8"/>
-    <menuitem id="folderPaneContext-rename" position="9"/>
-    
-    <menuseparator id="folderPaneContext-sep2" position="10"/>
-    <menuitem id="folderPaneContext-compact" position="11"/>
-    <menuitem id="folderPaneContext-markMailFolderAllRead" position="12"/>
-    <menuitem id="folderPaneContext-markNewsgroupAllRead" position="13"/>
-    <menuitem id="folderPaneContext-emptyTrash" position="14"/>
-    <menuitem id="folderPaneContext-sendUnsentMessages" position="15"/>
-    
-    <menuseparator id="folderPaneContext-sep3" position="16"/>
-    <menuitem id="folderPaneContext-favoriteFolder" position="17"/>
-    <menuitem id="folderPaneContext-properties" position="18"/>
-    
-    <menuseparator id="gfn_FLDR_GriffinContextFunctions" position="19"/>
-    <menuitem id="gfn_FLDR_AddToSalesforce" label="FLDR! Add to salesforce..." position="20"></menuitem>
-  </popup>-->
   
   <statusbar id="status-bar">
-    <statusbarpanel id="gfn_status" label="Griffin Panel!">
+    <statusbarpanel id="gfn_status" label="Griffin Status">
     </statusbarpanel>
+    <progressmeter id="synch_progress" mode ="determined" value="0"></progressmeter>
   </statusbar>
 </overlay>
