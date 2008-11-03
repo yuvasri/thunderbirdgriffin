@@ -13,7 +13,11 @@
         return last;
     },
     
-    ensureLogin: function(){        
+    ensureLogin: function(){   
+        var status = document.getElementById("gfn_status");
+        if(status != null){     
+            status.setAttribute("label", "Logging in...");
+        }
         if(sforce.connection.sessionId == null){
             var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
                                 
@@ -31,7 +35,7 @@
                          // found it! (Hopefully!!)
                          try{
                             var loginResult = sforce.connection.login(pass.user, pass.password);
-                            sforce.connection.serverUrl = loginResult.serverUrl;
+                            sforce.connection.serverUrl = loginResult.serverUrl;      
                          } catch (e) {
                             // TODO: Globalise.
                             GriffinCommon.log('Stored login for ' + queryString + ' failed with error ' + e);
@@ -48,7 +52,16 @@
             }
         }
         // May have still not logged in (eg cancelled the login dialog).
-        return sforce.connection.sessionId != null;
+        var hasLoggedIn = sforce.connection.sessionId != null;                              
+        if(status != null){
+            if(hasLoggedIn){
+                status.setAttribute("label", "Login successful...");
+            }
+            else{
+                status.setAttribute("label", "Login failed. See Error Console for details.");                
+            }
+        }
+        return hasLoggedIn
     },
     
     getContactFieldMap: function(){    
@@ -142,7 +155,7 @@ else{
 }
 
 
-
+/*
 // Lifted from http://mb.eschew.org/16#sub_16.7
 function _dumpFactSubtree(ds, sub, level)
 {
@@ -184,3 +197,4 @@ function dumpFromRoot(ds, rootURI)
 {
   return _dumpFactSubtree(ds, rootURI, 0);
 }
+*/
