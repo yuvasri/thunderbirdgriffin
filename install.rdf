@@ -6,7 +6,7 @@
    
     <em:id>griffin@mpbsoftware.com</em:id>
     <em:name>Griffin Salesforce Extension</em:name>
-    <em:version>1.0</em:version>
+    <em:version>0.1</em:version>
     <em:description>Provides an intuitive interface between salesforce and Thunderbird.</em:description>
     <em:creator>David Hatfield</em:creator>
     

@@ -44,7 +44,7 @@
         <WebProjectProperties>
           <UseIIS>False</UseIIS>
           <AutoAssignPort>True</AutoAssignPort>
-          <DevelopmentServerPort>3057</DevelopmentServerPort>
+          <DevelopmentServerPort>2946</DevelopmentServerPort>
           <DevelopmentServerVPath>/</DevelopmentServerVPath>
           <IISUrl>
           </IISUrl>
@@ -79,6 +79,7 @@
     <Content Include="content\overlay.js" />
     <Content Include="content\prototype_yui.js" />
     <Content Include="content\GriffinCommon.js" />
+    <Content Include="defaults\preferences\defaultprefs.js" />
     <Content Include="skin\cardOverlay.css" />
     <Content Include="skin\login.css" />
     <Content Include="skin\mainicon.png" />
