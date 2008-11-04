@@ -18,7 +18,7 @@
 
   <popup id="threadPaneContext">
     <menuseparator id="gfn_THRD_GriffinContextFunctions"/>
-    <menuitem id="gfn_THRD_AddToSalesforce" label="Add to salesforce" oncommand="GriffinMessage.addMessageToSalesforce(event);"></menuitem>
+    <menuitem id="gfn_THRD_AddToSalesforce" label="Add to salesforce" oncommand="GriffinMessage.addSelectedMessages();"></menuitem>
   </popup>
 
   <popup id="messagePaneContext">

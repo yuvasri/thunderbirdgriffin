@@ -40,19 +40,35 @@
         GriffinMessage.scheduleSynch();
     },
   
-    addMessageToSalesforce: function(e){
+    addSelectedMessages: function(){
+        var messages = GetSelectedMessages();
+        GriffinMessage.addMessages(messages);
+    },    
+  
+    addMessages: function(messages){
         if(!GriffinCommon.ensureLogin()){
             return;
         }
-        // TODO: Use configured task mapping instead of hardcoding.
-        var messages = GetSelectedMessages();
+        
+        var taskMap = GriffinCommon.getFieldMap("Task");
+        
         var tasks = [];
         for(var i = 0; i < messages.length; i++){
             var messageURI = messages[i];
             var hdr = messenger.msgHdrFromURI(messageURI);
             var task = new sforce.SObject('Task');
-            task.Description = getContentFromMessageURI(messageURI);
-            task.Subject = hdr.subject;
+            
+            for(var currFldIdx = 0; currFldIdx < taskMap.length; currFldIdx++){
+                var currFldMap = taskMap[currFldIdx];
+                var val = null;
+                if(hdr.hasOwnProperty(currFldMap.tBirdField)){
+                    val = hdr[currFldMap.tBirdField];
+                } else {
+                    var evalStr = currFldMap.tBirdField + "(" + messageURI + ");";
+                    val = eval(evalStr);
+                }
+                task[currFldMap.sfdcField] = val;
+            }
             tasks.push(task);
         }
         sforce.connection.create(tasks);
@@ -101,15 +117,14 @@
         return year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second + "Z";
     },
     
-    getSFDCUpdatedContacts: function(lastUpdateDate){
+    getSFDCUpdatedContacts: function(lastUpdateDate, now, retreiveFields){
         // If more than 30 days since last synch, can't use getUpdated. Go for a full blown SOQL query.
         var millisPerDay = 24 * 60 * 60 * 1000;
-        var contacts = null;        
-        var now = new Date(); 
+        var contacts = null;
         // TODO: Allow synch criteria other than ownership.
         var ownershipLimited = GriffinCommon.getPrefValue("synchContactOwnedBy", "string");
         if((now.getTime() - lastUpdateDate.getTime()) > (30 * millisPerDay)){
-            statusPanel.setAttribute("label", "Synchronising contacts (SOQL)...");
+            document.getElementById("gfn_status").setAttribute("label", "Synchronising contacts (SOQL)...");
             // Use SOQL to get updated records, as too much time has passed to use getUpdated                
             var soql = "SELECT " + retreiveFields + " FROM Contact WHERE LastModifiedDate > " + GriffinMessage.formatDateSfdc(lastUpdateDate);
             if(ownershipLimited == "ME"){
@@ -143,7 +158,7 @@
         }
         else{
             // TODO: filter results of getUpdated by Ownership criteria.
-            statusPanel.setAttribute("label", "Synchronising contacts (getUpdated)...");
+            document.getElementById("gfn_status").setAttribute("label", "Synchronising contacts (getUpdated)...");
             result = sforce.connection.getUpdated("Contact", lastUpdateDate, now);
             contacts = sforce.connection.retrieve(retreiveFields, "Contact", result.getArray("ids"));
         }
@@ -164,7 +179,7 @@
                 return;
             }
             
-            var fieldMap = GriffinCommon.getContactFieldMap();
+            var fieldMap = GriffinCommon.getFieldMap("Contact");
             var retreiveFields = "";
             for(var i = 0; i < fieldMap.length; i++){
                 if(i > 0)
@@ -178,7 +193,8 @@
             }
             var lastUpdateDate = new Date();
             lastUpdateDate.setTime(prefTime);
-            GriffinMessage.getSFDCUpdatedContacts(lastUpdateDate);            
+            var now = new Date();
+            var contacts = GriffinMessage.getSFDCUpdatedContacts(lastUpdateDate, now, retreiveFields);            
             
             // TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
             // TODO: Synch across multiple address books.

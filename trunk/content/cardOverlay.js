@@ -16,7 +16,7 @@ var GriffinCard = {
             synchContactDir == "TBIRD") {
             // Def: abCardOverlay.js
             // holds the edited version of the card.
-            var fieldMap = GriffinCommon.getContactFieldMap();
+            var fieldMap = GriffinCommon.getFieldMap("Contact");
             var contact = GriffinCard.setContactVals(gEditCard.card, fieldMap);
             var result;     
             if(contact.Id.length > 0){

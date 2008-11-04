@@ -64,9 +64,9 @@
         return hasLoggedIn
     },
     
-    getContactFieldMap: function(){    
+    getFieldMap: function(obj){    
         var connection = GriffinCommon.getDbConnection();
-        var statement = connection.createStatement("SELECT tBirdField, sfdcField FROM FieldMap WHERE object = 'Contact'");
+        var statement = connection.createStatement("SELECT tBirdField, sfdcField FROM FieldMap WHERE object = '" + obj + "'");
         var fieldMap = [];
         try{
             while(statement.executeStep()){

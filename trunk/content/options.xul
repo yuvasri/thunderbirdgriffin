@@ -13,18 +13,14 @@
         persist="width height screenX screenY"
         ondialogaccept="return GriffinOptions.savePrefs();">
 
-
-  <stringbundleset id="stringbundleset">
-    <stringbundle id="bundle_options" src="chrome://griffin/locale/options.properties"/>
-  </stringbundleset>
-
   <script type="application/x-javascript" src="chrome://griffin/content/options.js"></script>
   <script type="application/x-javascript" src="chrome://griffin/content/GriffinCommon.js"></script>
   <script type="application/x-javascript" src="chrome://messenger/content/mailWindow.js"></script>
+
   <tabbox  flex="1">
     <tabs >
-      <tab label="&tabTitle.contact;"     />
-      <tab label="&tabTitle.task;"         />
+      <tab label="&tabTitle.contact;"/>
+      <tab label="&tabTitle.task;"/>
     </tabs>
     <tabpanels flex="1" >
       <tabpanel>
@@ -56,12 +52,15 @@
           <vbox id="taskMapping" flex="1" style="overflow: auto">
 
           </vbox>
-      </vbox>
+        </vbox>
       </tabpanel>
     </tabpanels>
   </tabbox>
 
 
   <description id="errors"></description>
+
+
+  <stringbundle id="bundle_options" src="chrome://messenger/locale/search.properties"></stringbundle>
   
 </dialog>

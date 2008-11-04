@@ -1,4 +1,4 @@
-﻿FieldInfo = function(prop, type, obj){
+﻿var FieldInfo = function(prop, type, obj){
     this.prop = prop;
     this.type = type;
     try{
@@ -147,7 +147,7 @@ var GriffinOptions = {
     initContactPanel: function(){
     
         // Contact field mapping
-        GriffinOptions.appendFieldMap("Contact", "cnctMapping");
+        GriffinOptions.appendFieldMap("Contact", "cnctMapping", GriffinOptions.abCardProps);
         // Other contact options
         document.getElementById("synchDeleted").checked = GriffinCommon.getPrefValue("propogateDeletions", "bool");
         document.getElementById("synchDir").selectedItem = document.getElementById("synchDir_" + GriffinCommon.getPrefValue("synchContactDir", "string"));
@@ -229,15 +229,15 @@ var GriffinOptions = {
         return true;
     },
     
-    appendFieldMap: function(obj, id){
+    appendFieldMap: function(obj, id, properties){
         // Contact field mapping
         var vBox = document.getElementById(id);
         var mDBConn = GriffinCommon.getDbConnection();
         var statement = mDBConn.createStatement("SELECT sfdcField, strength FROM FieldMap WHERE object = '" + obj + "' AND tbirdField = ?1");
         var fieldsDrop = GriffinOptions.getSfdcFieldsDropDown(obj);
         try{
-            for(var i = 0; i < GriffinOptions.abCardProps.length; i++){
-                var currCardProp = GriffinOptions.abCardProps[i];
+            for(var i = 0; i < properties.length; i++){
+                var currCardProp = properties[i];
                 var li = document.createElement("hbox");
                 var label = document.createElement("label");
                 var labelText = document.createTextNode(currCardProp.label);
@@ -278,12 +278,16 @@ var GriffinOptions = {
     },
     
     initTaskPanel: function(){
-        GriffinOptions.appendFieldMap("Task", "taskMapping");
+        GriffinOptions.appendFieldMap("Task", "taskMapping", GriffinOptions.msgProps);
     },
     
     onLoad: function() {
-        GriffinOptions.initContactPanel();
-        GriffinOptions.initTaskPanel();
+        try{
+            GriffinOptions.initContactPanel();
+            GriffinOptions.initTaskPanel();
+        } catch (e) {
+            GriffinCommon.log(e);
+        }
     }
     
 };

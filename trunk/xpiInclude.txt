@@ -11,3 +11,4 @@ skin\*.bmp
 skin\*.bmp
 locale\*-*\*.dtd
 locale\??\*.dtd
+defaults\preferences\*.js
