@@ -27,6 +27,7 @@
         // When the first synch comes around we want to 
         // a) Synch (obviously)
         // b) Schedule the synch to run as often as set in the prefs.
+        //
         // a is a straight window.setTimeout thing, the other is a window.setInterval call 
         // that needs to happen at the same time. Hence two lines of dubious code below. We
         // may need to cancel this later (if the frequency changes for example) so save the 
@@ -48,33 +49,22 @@
     addMessages: function(messages){
         if(!GriffinCommon.ensureLogin()){
             return;
-        }
-        
-        var taskMap = GriffinCommon.getFieldMap("Task");
-        
+        }        
+        var taskMap = GriffinCommon.getFieldMap("Task");        
         var tasks = [];
         for(var i = 0; i < messages.length; i++){
-            var messageURI = messages[i];
-            var hdr = messenger.msgHdrFromURI(messageURI);
-            var task = new sforce.SObject('Task');
-            
+            var msg = new Griffin.Message(messages[i]);
+            var task = new sforce.SObject('Task');            
             for(var currFldIdx = 0; currFldIdx < taskMap.length; currFldIdx++){
                 var currFldMap = taskMap[currFldIdx];
-                var val = null;
-                if(hdr.hasOwnProperty(currFldMap.tBirdField)){
-                    val = hdr[currFldMap.tBirdField];
-                } else {
-                    var evalStr = currFldMap.tBirdField + "(" + messageURI + ");";
-                    val = eval(evalStr);
-                }
-                task[currFldMap.sfdcField] = val;
+                task[currFldMap.sfdcField] = msg.getField(currFldMap.tBirdField);;
             }
             tasks.push(task);
         }
         sforce.connection.create(tasks);
     },
     
-    body: function(uri){   
+    body: function(uri){
         var content = "";
         var MsgService = messenger.messageServiceFromURI(uri);
         var MsgStream =  Components.classes["@mozilla.org/network/sync-stream-listener;1"].createInstance();

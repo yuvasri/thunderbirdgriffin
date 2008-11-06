@@ -66,7 +66,7 @@
     
     getFieldMap: function(obj){    
         var connection = GriffinCommon.getDbConnection();
-        var statement = connection.createStatement("SELECT tBirdField, sfdcField FROM FieldMap WHERE object = '" + obj + "'");
+        var statement = connection.createStatement("SELECT tBirdField, sfdcField FROM FieldMap fm, TBirdFields t WHERE t.fieldId = fm.fieldId AND t.object = '" + obj + "'");
         var fieldMap = [];
         try{
             while(statement.executeStep()){
