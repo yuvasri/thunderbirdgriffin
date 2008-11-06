@@ -75,6 +75,7 @@
     <Content Include="content\cardOverlay.js" />
     <Content Include="content\connection.js" />
     <Content Include="content\login.js" />
+    <Content Include="content\Message.js" />
     <Content Include="content\options.js" />
     <Content Include="content\overlay.js" />
     <Content Include="content\prototype_yui.js" />

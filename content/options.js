@@ -1,110 +1,39 @@
-﻿var FieldInfo = function(prop, type, obj){
+﻿var FieldInfo = function(prop, label, fieldId){
+    this.fieldId = fieldId;
     this.prop = prop;
-    this.type = type;
-    try{
-        this.label = document.getElementById("bundle_options").getString(obj + "." + prop);
-    }
-    catch(e)
-    {
-        this.label = prop;
-    }
+    this.label = label == null ? prop : label;
 }
 
 var GriffinOptions = {
 
     
-    abCardProps: [
-        new FieldInfo("firstName", "prop", "Contact"),
-        new FieldInfo("lastName", "prop", "Contact"),
-        new FieldInfo("phoneticFirstName", "prop"), "Contact",
-        new FieldInfo("phoneticLastName", "prop", "Contact"),
-        new FieldInfo("displayName", "prop", "Contact"),
-        new FieldInfo("nickName", "prop", "Contact"),
-        new FieldInfo("primaryEmail", "prop", "Contact"),
-        new FieldInfo("secondEmail", "prop", "Contact"),
-        new FieldInfo("workPhone", "prop", "Contact"),
-        new FieldInfo("homePhone", "prop", "Contact"),
-        new FieldInfo("faxNumber", "prop", "Contact"),
-        new FieldInfo("pagerNumber", "prop", "Contact"),
-        new FieldInfo("cellularNumber", "prop", "Contact"),
-        new FieldInfo("workPhoneType", "prop", "Contact"),
-        new FieldInfo("homePhoneType", "prop", "Contact"),
-        new FieldInfo("faxNumberType", "prop", "Contact"),
-        new FieldInfo("pagerNumberType", "prop", "Contact"),
-        new FieldInfo("cellularNumberType", "prop", "Contact"),
-        new FieldInfo("homeAddress", "prop", "Contact"),
-        new FieldInfo("homeAddress2", "prop", "Contact"),
-        new FieldInfo("homeCity", "prop", "Contact"),
-        new FieldInfo("homeState", "prop", "Contact"),
-        new FieldInfo("homeZipCode", "prop", "Contact"),
-        new FieldInfo("homeCountry", "prop", "Contact"),
-        new FieldInfo("workAddress", "prop", "Contact"),
-        new FieldInfo("workAddress2", "prop", "Contact"),
-        new FieldInfo("workCity", "prop", "Contact"),
-        new FieldInfo("workState", "prop", "Contact"),
-        new FieldInfo("workZipCode", "prop", "Contact"),
-        new FieldInfo("workCountry", "prop", "Contact"),
-        new FieldInfo("jobTitle", "prop", "Contact"),
-        new FieldInfo("department", "prop", "Contact"),
-        new FieldInfo("company", "prop", "Contact"),
-        new FieldInfo("aimScreenName", "prop", "Contact"),
-        new FieldInfo("anniversaryYear", "prop", "Contact"),
-        new FieldInfo("anniversaryMonth", "prop", "Contact"),
-        new FieldInfo("anniversaryDay", "prop", "Contact"),
-        new FieldInfo("spouseName", "prop", "Contact"),
-        new FieldInfo("familyName", "prop", "Contact"),
-        new FieldInfo("defaultAddress", "prop", "Contact"),
-        new FieldInfo("category", "prop", "Contact"),
-        new FieldInfo("webPage1", "prop", "Contact"),
-        new FieldInfo("webPage2", "prop", "Contact"),
-        new FieldInfo("birthYear", "prop", "Contact"),
-        new FieldInfo("birthMonth", "prop", "Contact"),
-        new FieldInfo("birthDay", "prop", "Contact"),
-        new FieldInfo("custom1", "prop", "Contact"),
-        new FieldInfo("custom2", "prop", "Contact"),
-        new FieldInfo("custom3", "prop", "Contact"),
-        new FieldInfo("custom4", "prop", "Contact"),
-        new FieldInfo("notes", "prop", "Contact"),
-        new FieldInfo("lastModifiedDate", "prop", "Contact"),
-        new FieldInfo("popularityIndex", "prop", "Contact"),
-        new FieldInfo("preferMailFormat", "prop", "Contact"),
-        new FieldInfo("isMailList", "prop", "Contact"),
-        new FieldInfo("mailListURI", "prop", "Contact"),
-        new FieldInfo("allowRemoteContent", "prop", "Contact")
-    ],
-   
-    msgProps: [
-        // Properties
-        new FieldInfo("isRead", "prop", "Task"),
-        new FieldInfo("isFlagged", "prop", "Task"),
-        new FieldInfo("priority", "prop", "Task"),
-        new FieldInfo("flags", "prop", "Task"),
-        new FieldInfo("threadId", "prop", "Task"),
-        new FieldInfo("messageKey", "prop", "Task"),
-        new FieldInfo("threadParent", "prop", "Task"),
-        new FieldInfo("messageSize", "prop", "Task"),
-        new FieldInfo("lineCount", "prop", "Task"),
-        new FieldInfo("statusOffset", "prop", "Task"),
-        new FieldInfo("messageOffset", "prop", "Task"),
-        new FieldInfo("offlineMessageSize", "prop", "Task"),
-        new FieldInfo("date", "prop", "Task"),
-        new FieldInfo("dateInSeconds", "prop", "Task"),
-        new FieldInfo("messageId", "prop", "Task"),
-        new FieldInfo("ccList", "prop", "Task"),
-        new FieldInfo("author", "prop", "Task"),
-        new FieldInfo("subject", "prop", "Task"),
-        new FieldInfo("recipients", "prop", "Task"),
-        new FieldInfo("numReferences", "prop", "Task"),
-        new FieldInfo("mime2DecodedAuthor", "prop", "Task"),
-        new FieldInfo("mime2DecodedSubject", "prop", "Task"),
-        new FieldInfo("mime2DecodedRecipients", "prop", "Task"),
-        new FieldInfo("Charset", "prop", "Task"),
-        new FieldInfo("label", "prop", "Task"),
-        new FieldInfo("accountKey", "prop", "Task"),
-        new FieldInfo("folder", "prop", "Task"),
-        // Methods
-        new FieldInfo("GriffinMessage.body", "method", "Task")
-    ],
+    tbirdProps: function(obj){        
+        var mDBConn = GriffinCommon.getDbConnection();
+        var statement = mDBConn.createStatement("SELECT fieldId, tbirdField, label FROM TBirdFields WHERE object = '" + obj + "'");
+        var props = [];
+        var bundle_options = document.getElementById('bundle_options');
+        try{            
+            while(statement.executeStep()){
+                var fieldId = statement.getInt32(0);
+                var field = statement.getString(1);
+                var dbLabel = statement.getString(2);
+                var label = field;
+                try{
+                    var label = bundle_options.getString(dbLabel);
+                }
+                catch(e)
+                {
+                    GriffinCommon.log("Failed to get string for label " + dbLabel + " with error " + e);
+                }
+                props.push(new FieldInfo(field, label, fieldId));
+            }
+            statement.reset();
+        }
+        finally{
+            statement.reset();
+        }
+        return props;
+    },
     
     getSfdcFieldsDropDown: function(obj){
         if(!GriffinCommon.ensureLogin()){
@@ -126,7 +55,7 @@ var GriffinOptions = {
             menupopup.appendChild(menuitem);
         }
         return menulist;
-    },    
+    },
     
     setSelected: function(menulist, val){
         if(menulist.nodeName == "textbox"){ 
@@ -147,7 +76,7 @@ var GriffinOptions = {
     initContactPanel: function(){
     
         // Contact field mapping
-        GriffinOptions.appendFieldMap("Contact", "cnctMapping", GriffinOptions.abCardProps);
+        GriffinOptions.appendFieldMap("Contact", "cnctMapping");
         // Other contact options
         document.getElementById("synchDeleted").checked = GriffinCommon.getPrefValue("propogateDeletions", "bool");
         document.getElementById("synchDir").selectedItem = document.getElementById("synchDir_" + GriffinCommon.getPrefValue("synchContactDir", "string"));
@@ -184,14 +113,15 @@ var GriffinOptions = {
     
     updateFieldMap: function(obj){    
         var mDBConn = GriffinCommon.getDbConnection();
-        var rep = mDBConn.createStatement("Replace Into FieldMap (object, tbirdField, sfdcField, strength) Values ('" + obj + "', ?1, ?2, ?3)");
-        var del = mDBConn.createStatement("Delete From FieldMap Where tbirdField = ?1 And object = '" + obj + "'");
+        var rep = mDBConn.createStatement("Replace Into FieldMap (fieldId, sfdcField, strength) Values (?1, ?2, ?3)");
+        var del = mDBConn.createStatement("Delete From FieldMap Where fieldId = ?1");
         try{
-            for(var i = 0; i < GriffinOptions.abCardProps.length; i++){
+            var props = GriffinOptions.tbirdProps(obj);
+            for(var i = 0; i < props.length; i++){
                 
-                var currCardProp = GriffinOptions.abCardProps[i];
-                var fld = document.getElementById("fld_" + obj + "_" + currCardProp.prop).value;
-                var str = document.getElementById("str_" + obj + "_" + currCardProp.prop).value;
+                var currCardProp = props[i];
+                var fld = document.getElementById("fld_" + currCardProp.fieldId).value;
+                var str = document.getElementById("str_" + currCardProp.fieldId).value;
                 var statement;
                 if(fld.length == 0){
                     statement = del;
@@ -201,7 +131,7 @@ var GriffinOptions = {
                     statement.bindUTF8StringParameter(1, fld);
                     statement.bindInt32Parameter(2, str);
                 }
-                statement.bindUTF8StringParameter(0, currCardProp.prop);
+                statement.bindInt32Parameter(0, currCardProp.fieldId);
                 statement.execute();
                 statement.reset();
             }
@@ -229,12 +159,13 @@ var GriffinOptions = {
         return true;
     },
     
-    appendFieldMap: function(obj, id, properties){
+    appendFieldMap: function(obj, id){
         // Contact field mapping
         var vBox = document.getElementById(id);
         var mDBConn = GriffinCommon.getDbConnection();
-        var statement = mDBConn.createStatement("SELECT sfdcField, strength FROM FieldMap WHERE object = '" + obj + "' AND tbirdField = ?1");
+        var statement = mDBConn.createStatement("SELECT sfdcField, strength FROM FieldMap WHERE fieldId = ?1");
         var fieldsDrop = GriffinOptions.getSfdcFieldsDropDown(obj);
+        var properties = GriffinOptions.tbirdProps(obj);
         try{
             for(var i = 0; i < properties.length; i++){
                 var currCardProp = properties[i];
@@ -251,7 +182,7 @@ var GriffinOptions = {
                 
                 var sfdcField = "";
                 var strength = "";
-                statement.bindUTF8StringParameter(0, currCardProp.label);
+                statement.bindInt32Parameter(0, currCardProp.fieldId);
                 if(statement.executeStep()){
                     sfdcField = statement.getString(0);
                     strength = statement.getDouble(1);
@@ -259,11 +190,11 @@ var GriffinOptions = {
                 statement.reset();
                 
                 // Field setup
-                ddlField.id = "fld_" + obj + "_" + currCardProp.prop;
+                ddlField.id = "fld_" + currCardProp.fieldId;
                 GriffinOptions.setSelected(ddlField, sfdcField);
                 
                 // Strength setup
-                txtStrength.id = "str_" + obj + "_" + currCardProp.prop;
+                txtStrength.id = "str_" + currCardProp.fieldId;
                 txtStrength.setAttribute("value", strength);
                 
                 li.appendChild(label);
@@ -278,7 +209,7 @@ var GriffinOptions = {
     },
     
     initTaskPanel: function(){
-        GriffinOptions.appendFieldMap("Task", "taskMapping", GriffinOptions.msgProps);
+        GriffinOptions.appendFieldMap("Task", "taskMapping");
     },
     
     onLoad: function() {
@@ -293,8 +224,6 @@ var GriffinOptions = {
 };
 
 window.addEventListener("load", GriffinOptions.onLoad, false);
-
-
 
 // Sample taken from http://www.mozilla.org/rdf/doc/rdf-all-resources-example.html
 // may help to dump rdf contents
