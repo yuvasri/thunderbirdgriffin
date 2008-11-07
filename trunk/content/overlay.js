@@ -141,7 +141,6 @@
            synchContactDir == 'SFDC') {
            
             var statusPanel = document.getElementById("gfn_status");
-            var progressbar = document.getElementById("synch_progress");
             statusPanel.setAttribute("label", "Synchronising contacts...");
             progressbar.value = 0;
             
@@ -171,8 +170,8 @@
             var abDirUri = "moz-abmdbdirectory://abook.mab";
             var defaultDirectory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(Components.interfaces.nsIAbDirectory);
             for(var i = 0; i < contacts.length; i++){
-                statusPanel.setAttribute("label", "Synchronising updates (" + i + "/" + contacts.length + ")");
-                progressbar.value = i * 100 / contacts.length;
+                GriffinCommon.log("Synchronising updates (" + i + "/" + contacts.length + ")", false, true, false);
+                window.setTimeout("document.getElementById('synch_progress').value = " + (i * 100 / contacts.length), 0);
                 var currContact = contacts[i];
                 
                 var matchObj = GriffinCommon.getCardForContact(currContact, [{tbirdField: "Custom1", sfdcField: "Id", strength: 100}]);
@@ -194,7 +193,7 @@
             }
             progressbar.value = 100;
             GriffinCommon.setPrefValue("lastSynch", now.getTime(), "string");
-            statusPanel.setAttribute("label", "Griffin Status");
+            GriffinCommon.log("Griffin Status", false, true, false);
         }
     },
     
@@ -206,6 +205,7 @@
         }
     },
     
+    /*
     getCardForContact: function(contact){
         var id = contact.Id;
         var rdfService = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService);
@@ -235,7 +235,7 @@
         }
         // Not found in any address book. Return null;
         return null;
-    },
+    },*/
     
     getFolderByName: function(fldName){
         return null;
