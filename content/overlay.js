@@ -64,26 +64,6 @@
         sforce.connection.create(tasks);
     },
     
-    body: function(uri){
-        var content = "";
-        var MsgService = messenger.messageServiceFromURI(uri);
-        var MsgStream =  Components.classes["@mozilla.org/network/sync-stream-listener;1"].createInstance();
-        var consumer = MsgStream.QueryInterface(Components.interfaces.nsIInputStream);
-        var ScriptInput = Components.classes["@mozilla.org/scriptableinputstream;1"].createInstance();
-        var ScriptInputStream = ScriptInput.QueryInterface(Components.interfaces.nsIScriptableInputStream);
-        ScriptInputStream.init(consumer);
-        try {
-            MsgService.streamMessage(uri, MsgStream, msgWindow, null, false, null);
-        } catch (ex) {
-            GriffinCommon.log("error while getting message content: " + ex)
-        }
-        ScriptInputStream.available();
-        while (ScriptInputStream .available()) {
-            content = content + ScriptInputStream.read(512);
-        }
-        return content;
-    },
-    
     openOptions: function(e){
         window.open('chrome://griffin/content/options.xul', 'options', "chrome,resizable=yes,titlebar");
     },
@@ -194,7 +174,8 @@
                 statusPanel.setAttribute("label", "Synchronising updates (" + i + "/" + contacts.length + ")");
                 progressbar.value = i * 100 / contacts.length;
                 var currContact = contacts[i];
-                var matchObj = GriffinMessage.getCardForContact(currContact);
+                
+                var matchObj = GriffinCommon.getCardForContact(currContact, [{tbirdField: "Custom1", sfdcField: "Id", strength: 100}]);
                 var newCard = (matchObj == null);
                 var cardMatch = null;
                 if(newCard){

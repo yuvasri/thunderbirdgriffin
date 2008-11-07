@@ -23,7 +23,7 @@ var GriffinOptions = {
                 }
                 catch(e)
                 {
-                    GriffinCommon.log("Failed to get string for label " + dbLabel + " with error " + e);
+                    GriffinCommon.log("Failed to get string for label " + dbLabel + " with error " + e, true, false, true);
                 }
                 props.push(new FieldInfo(field, label, fieldId));
             }
@@ -36,25 +36,35 @@ var GriffinOptions = {
     },
     
     getSfdcFieldsDropDown: function(obj){
+        if(GriffinOptions["fieldsDrop_" + obj]){
+            return;
+        }
         if(!GriffinCommon.ensureLogin()){
-            return document.createElement("textbox");
+            GriffinOptions["fieldsDrop_" + obj] = document.createElement("textbox");
         }
-        var result = sforce.connection.describeSObject(obj);
-        var menulist = document.createElement("menulist");
-        var menupopup = document.createElement("menupopup");
-        menulist.appendChild(menupopup);
-        var menuitem = document.createElement("menuitem");
-        menuitem.setAttribute("label", "Not Mapped"); // Globalise!
-        menuitem.setAttribute("value", "");
-        menupopup.appendChild(menuitem);
-        for(var i = 0; i < result.fields.length; i++){
-            var currField = result.fields[i];
-            var menuitem = document.createElement("menuitem");
-            menuitem.setAttribute("label", currField.label);
-            menuitem.setAttribute("value", currField.name);
-            menupopup.appendChild(menuitem);
-        }
-        return menulist;
+        var result = sforce.connection.describeSObject(obj, {
+            onSuccess: function(result){
+                var menulist = document.createElement("menulist");
+                var menupopup = document.createElement("menupopup");
+                menulist.appendChild(menupopup);
+                var menuitem = document.createElement("menuitem");
+                menuitem.setAttribute("label", "Not Mapped"); // Globalise!
+                menuitem.setAttribute("value", "");
+                menupopup.appendChild(menuitem);
+                for(var i = 0; i < result.fields.length; i++){
+                    var currField = result.fields[i];
+                    var menuitem = document.createElement("menuitem");
+                    menuitem.setAttribute("label", currField.label);
+                    menuitem.setAttribute("value", currField.name);
+                    menupopup.appendChild(menuitem);
+                }
+                GriffinOptions["fieldsDrop_" + obj] = menulist;
+            },
+            onFailure: function(e){
+                GriffinCommon.log(e, true, false, true);
+                GriffinOptions["fieldsDrop_" + obj] = null;
+            }
+        });
     },
     
     setSelected: function(menulist, val){
@@ -76,7 +86,7 @@ var GriffinOptions = {
     initContactPanel: function(){
     
         // Contact field mapping
-        GriffinOptions.appendFieldMap("Contact", "cnctMapping");
+        GriffinOptions.startAppendFieldMap("Contact", "cnctMapping");
         // Other contact options
         document.getElementById("synchDeleted").checked = GriffinCommon.getPrefValue("propogateDeletions", "bool");
         document.getElementById("synchDir").selectedItem = document.getElementById("synchDir_" + GriffinCommon.getPrefValue("synchContactDir", "string"));
@@ -159,12 +169,16 @@ var GriffinOptions = {
         return true;
     },
     
-    appendFieldMap: function(obj, id){
+    appendFieldMap: function(obj, id){        
+        if(!GriffinOptions["fieldsDrop_" + obj]){
+            window.setTimeout("GriffinOptions.appendFieldMap('" + obj + "', '" + id + "');", 100);
+            return;
+        }
+        var fieldsDrop = GriffinOptions["fieldsDrop_" + obj];
         // Contact field mapping
         var vBox = document.getElementById(id);
         var mDBConn = GriffinCommon.getDbConnection();
         var statement = mDBConn.createStatement("SELECT sfdcField, strength FROM FieldMap WHERE fieldId = ?1");
-        var fieldsDrop = GriffinOptions.getSfdcFieldsDropDown(obj);
         var properties = GriffinOptions.tbirdProps(obj);
         try{
             for(var i = 0; i < properties.length; i++){
@@ -206,10 +220,16 @@ var GriffinOptions = {
         } finally {
           statement.reset();
         }
+        vBox.setAttribute("class", "");
+    },
+    
+    startAppendFieldMap: function(obj, id){
+        GriffinOptions.getSfdcFieldsDropDown(obj);
+        GriffinOptions.appendFieldMap(obj, id);
     },
     
     initTaskPanel: function(){
-        GriffinOptions.appendFieldMap("Task", "taskMapping");
+        GriffinOptions.startAppendFieldMap("Task", "taskMapping");
     },
     
     onLoad: function() {
@@ -217,7 +237,7 @@ var GriffinOptions = {
             GriffinOptions.initContactPanel();
             GriffinOptions.initTaskPanel();
         } catch (e) {
-            GriffinCommon.log(e);
+            GriffinCommon.log(e, true, false, true);
         }
     }
     

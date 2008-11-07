@@ -40,7 +40,7 @@
           </listbox>
           <textbox id="synchFreq"></textbox>
           <!-- Items are added to this dynamically on load. -->
-          <vbox id="cnctMapping" flex="1" style="overflow: auto">
+          <vbox id="cnctMapping" flex="1" style="overflow: auto" class="loading">
 
           </vbox>
           <button id="reset" label="&button.resetLastSynch;" oncommand="GriffinOptions.resetLastSynch();"/>
@@ -48,9 +48,9 @@
       </tabpanel>
       <tabpanel>
         <!-- Tasks Panel -->
-        <vbox>
+        <vbox flex="1">
           <!-- Items are added to this dynamically on load. -->
-          <vbox id="taskMapping" flex="1" style="overflow: auto">
+          <vbox id="taskMapping" flex="1" style="overflow: auto" class="loading">
 
           </vbox>
         </vbox>

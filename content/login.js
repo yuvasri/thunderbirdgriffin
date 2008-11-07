@@ -13,7 +13,7 @@
             }
             self.close();
        } catch(error) {
-            GriffinCommon.log(error);            
+            GriffinCommon.log(error, true, false, true);
             var lbl = document.getElementById('errMsg');
             var text = 'Unknown error whilst logging in.';
             if(error.detail)
