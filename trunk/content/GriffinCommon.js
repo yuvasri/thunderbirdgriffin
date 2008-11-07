@@ -1,6 +1,7 @@
 ﻿var GriffinCommon = {
     extensionId: "griffin@mpbsoftware.com",
     databasefile: "griffin.sqlite",   
+    logFile: "griffin.log",
     
     getFirstOpener: function(){
         var last;
@@ -38,7 +39,7 @@
                             sforce.connection.serverUrl = loginResult.serverUrl;      
                          } catch (e) {
                             // TODO: Globalise.
-                            GriffinCommon.log('Stored login for ' + queryString + ' failed with error ' + e);
+                            GriffinCommon.log('Stored login for ' + queryString + ' failed with error ' + e, true, false, true);
                          }
                          break;
                     }
@@ -108,9 +109,26 @@
         return "";
     },
     
-    log: function(msg){       
-        var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
-        consoleService.logStringMessage(msg);
+    log: function(msg, error, status, persist){       
+        if(error){
+            var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
+            // TODO: Use nsIConsoleMessage interface of @mozilla.org/scripterror;1 for logging to error console.
+            consoleService.logStringMessage(msg);
+        }
+        if(status){
+            var statusPanel = document.getElementById("gfn_status");
+            if(statusPanel != null){
+                statusPanel.setAttribute(msg);
+            }
+        }
+        if(persist){
+            var em = Components.classes["@mozilla.org/extensions/manager;1"].getService(Components.interfaces.nsIExtensionManager);
+            var logFile = em.getInstallLocation(GriffinCommon.extensionId).getItemFile(GriffinCommon.extensionId, GriffinCommon.logFile);
+            if(!logFile.exists()){
+                logFile.create();
+            }
+            logFile.append(msg);
+        }
     },
         
     getPrefValue: function(pref, type) {
@@ -144,6 +162,68 @@
             case "float": prefs.setCharPref(pref, value); break;
             default: prefs.setCharPref(pref, value); break;
         }
+    },
+    
+    getCardForContact: function(contact, fieldMaps){
+        var queryString = "?(or";
+        for(var currMapIdx = 0; currMapIdx < fieldMaps.length; ++currMapIdx){
+            if(currMapIdx > 0)
+                queryString += ",";
+            var currMap = fieldMaps[currMapIdx];
+            queryString += "(" + currMap.tbirdField + ",c," + contact[currMap.sfdcField] + ")"
+        }
+        queryString += ")";
+        var candidates = [];
+        var rdfService = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService);
+        // enumerate all of the address books on this system
+        var parentDir = rdfService.GetResource("moz-abdirectory://").QueryInterface(Components.interfaces.nsIAbDirectory);
+        var enumerator = parentDir.childNodes;
+        while (enumerator.hasMoreElements()) {
+            var addrbook = enumerator.getNext();  // an addressbook directory
+            addrbook.QueryInterface(Components.interfaces.nsIAbDirectory);
+            var searchUri= addrbook.directoryProperties.URI + queryString;  // search for the contact in this book
+            var directory = rdfService.GetResource(searchUri).QueryInterface(Components.interfaces.nsIAbDirectory);
+            var childCards = null;
+            try {
+                childCards = directory.childNodes;
+            } catch(e) {
+                childCards = directory.childCards;
+            }
+            
+            while (childCards.hasMoreElements()) {
+                var card = childCards.getNext().QueryInterface(Components.interfaces.nsIAbCard);
+                candidates.push({Card: card, Directory: addrbook.directoryProperties.URI});
+            }
+        }
+        if(candidates.length == 0){
+            // Not found in any address book, for any criteris. Return null;
+            return null;
+        }
+        return getBestMatch(fieldMaps, candidates);
+    },
+    
+    getBestMatch: function(fieldMaps, possibleMatches, contact){
+        var bestMatch = -1;
+        var bestMatchIdx = -1;
+        for(var idx = 0; idx < possibleMatches.length; possibleMatches++){
+            var matchStrength = getMatchStrength(fieldMaps, possibleMatches[idx].Card);
+            if(matchStrength > bestMatch){
+                bestMatchIdx = idx;
+                bestMatch = matchStrength;
+            }
+        }
+        return possibleMatches[bestMatchIdx];
+    },
+    
+    getMatchStrength: function(fieldMaps, candidateCard, contact){
+        var str = 0;
+        for(var mapIdx = 0; mapIdx < fieldMaps.length; mapIdx++){
+            var currMap = fieldMaps[mapIdx];
+            if(contact[currMap.sfdcField] == candidateCard[currMap.tbirdField]){
+                str += currMap.strength;
+            }
+        }
+        return str;
     }
 };
 

@@ -5,6 +5,7 @@
 
   <script src="chrome://griffin/content/connection.js" type="text/javascript"></script>
   <script src="chrome://griffin/content/Message.js" type="text/javascript"></script>
+  <script src="chrome://griffin/content/FieldMap.js" type="text/javascript"></script>
   <script src="chrome://griffin/content/GriffinCommon.js" type="text/javascript"></script>
   <script src="chrome://griffin/content/overlay.js" type="text/javascript"></script>
   
