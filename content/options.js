@@ -62,7 +62,7 @@ var GriffinOptions = {
             },
             onFailure: function(e){
                 GriffinCommon.log(e, true, false, true);
-                GriffinOptions["fieldsDrop_" + obj] = null;
+                GriffinOptions["fieldsDrop_" + obj] = document.createElement("textbox");
             }
         });
     },
@@ -115,7 +115,6 @@ var GriffinOptions = {
         }
         
         // TODO: Validate numeric-ness of strength fields.
-        // TODO: Validate strength fields sum to 100??
         // TODO: Validate Id field mapped?
         
         return valid;

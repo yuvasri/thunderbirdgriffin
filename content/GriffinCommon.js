@@ -179,40 +179,27 @@
         var parentDir = rdfService.GetResource("moz-abdirectory://").QueryInterface(Components.interfaces.nsIAbDirectory);
         var enumerator = parentDir.childNodes;
         while (enumerator.hasMoreElements()) {
-            var addrbook = enumerator.getNext();  // an addressbook directory
-            addrbook.QueryInterface(Components.interfaces.nsIAbDirectory);
-            var searchUri= addrbook.directoryProperties.URI + queryString;  // search for the contact in this book
-            var directory = rdfService.GetResource(searchUri).QueryInterface(Components.interfaces.nsIAbDirectory);
-            var childCards = null;
-            try {
-                childCards = directory.childNodes;
-            } catch(e) {
-                childCards = directory.childCards;
-            }
-            
+            var addrbook = enumerator.getNext().QueryInterface(Components.interfaces.nsIAbDirectory);
+            var childCards = addrbook.childNodes;            
             while (childCards.hasMoreElements()) {
                 var card = childCards.getNext().QueryInterface(Components.interfaces.nsIAbCard);
                 candidates.push({Card: card, Directory: addrbook.directoryProperties.URI});
             }
         }
-        if(candidates.length == 0){
-            // Not found in any address book, for any criteris. Return null;
-            return null;
-        }
-        return getBestMatch(fieldMaps, candidates);
+        return GriffinCommon.getBestMatch(fieldMaps, candidates);
     },
     
     getBestMatch: function(fieldMaps, possibleMatches, contact){
-        var bestMatch = -1;
-        var bestMatchIdx = -1;
+        var bestMatchValue = 0;
+        var bestMatch = null;
         for(var idx = 0; idx < possibleMatches.length; possibleMatches++){
-            var matchStrength = getMatchStrength(fieldMaps, possibleMatches[idx].Card);
-            if(matchStrength > bestMatch){
-                bestMatchIdx = idx;
-                bestMatch = matchStrength;
+            var matchStrength = GriffinCommon.getMatchStrength(fieldMaps, possibleMatches[idx].Card);
+            if(matchStrength > bestMatchValue){
+                bestMatch = possibleMatches[idx];
+                bestMatchValue = matchStrength;
             }
         }
-        return possibleMatches[bestMatchIdx];
+        return bestMatch;
     },
     
     getMatchStrength: function(fieldMaps, candidateCard, contact){
