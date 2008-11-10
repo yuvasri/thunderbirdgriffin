@@ -17,4 +17,4 @@ This download may contain egregious bugs; including but not limited to:
   * Munching contact data
   * Destroying the universe etc.
 
-Handle with caution, and please report issues large or small to the project administrator.
+Handle with caution, and please report issues large or small to the project administrator by using the issues tab.
