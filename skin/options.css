@@ -9,6 +9,9 @@
 	width: 100%;
 }
 
+/*
+TODO: Is this ajax loading gif really the right one?
+plenty more at http://www.ajaxload.info/ */
 .loading
 {
 	background-image: url('chrome://griffin/skin/ajax-loader.gif');
