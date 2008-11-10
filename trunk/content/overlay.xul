@@ -13,7 +13,7 @@
     <menu id="gfn_bttns" label="Griffin">
       <menupopup id="gfn_GriffinMenuPopup">
         <menuitem id="gfn_Options" label="Options..." oncommand="GriffinMessage.openOptions(event);"></menuitem>
-        <menuitem id="gfn_SynchContacts" label="Synchronise Address Book" oncommand="GriffinMessage.synchContacts();"></menuitem>
+        <menuitem id="gfn_SynchContacts" label="Synchronise Address Book" oncommand="GriffinMessage.beginSynchContacts();"></menuitem>
       </menupopup>
     </menu>
   </menubar>

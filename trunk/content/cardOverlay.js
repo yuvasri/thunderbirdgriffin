@@ -8,6 +8,7 @@ var GriffinCard = {
     saveCardToSFDC: function(){
         if(!GriffinCommon.ensureLogin()) {
             // TODO: Make some backup mechanism for saving contact info to sfdc.
+            // TODO: Globalise?
             GriffinCommon.log("Changes not saved to salesforce! What am I going to do!!", true, false, true);
             return;
         }
@@ -29,6 +30,7 @@ var GriffinCard = {
                     gEditCard.card[GriffinCard.getIdField(fieldMap)] = result[0].id;
                 }
                 else{
+                    // TODO: Globalise?
                     GriffinCommon.log("failed to create contact " + result[0], true, false, true);
                 }
             }

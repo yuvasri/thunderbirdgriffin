@@ -23,6 +23,7 @@ var GriffinOptions = {
                 }
                 catch(e)
                 {
+                    // TODO: Globalise
                     GriffinCommon.log("Failed to get string for label " + dbLabel + " with error " + e, true, false, true);
                 }
                 props.push(new FieldInfo(field, label, fieldId));
@@ -95,7 +96,7 @@ var GriffinOptions = {
     },
     
     resetLastSynch: function(){
-        GriffinCommon.setPrefValue("lastSynch", "0", "string");
+        GriffinCommon.setPrefValue("lastSynch", "100", "string");
         alert("Next contact synchronisation will be full!");
     },
     
@@ -111,6 +112,7 @@ var GriffinOptions = {
         var freq = parseInt(document.getElementById("synchFreq").value);
         if(isNaN(freq) || freq < 0){
             valid = false;
+            // TODO: Globalise
             GriffinOptions.displayMessage("Synch frequency must be a (positive) number.");
         }
         

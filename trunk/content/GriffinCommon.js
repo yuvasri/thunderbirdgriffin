@@ -1,4 +1,6 @@
-﻿var GriffinCommon = {
+﻿// TODO: Cache varous XPCOM classes used in this file - Performance?
+
+var GriffinCommon = {
     extensionId: "griffin@mpbsoftware.com",
     databasefile: "griffin.sqlite",   
     logFile: "griffin.log",
@@ -56,9 +58,11 @@
         var hasLoggedIn = sforce.connection.sessionId != null;                              
         if(status != null){
             if(hasLoggedIn){
+                // TODO: Globalise
                 status.setAttribute("label", "Login successful...");
             }
             else{
+                // TODO: Globalise
                 status.setAttribute("label", "Login failed. See Error Console for details.");                
             }
         }
@@ -108,7 +112,7 @@
         }
         return "";
     },
-    
+ 
     log: function(msg, error, status, persist){       
         if(error){
             var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
@@ -118,16 +122,21 @@
         if(status){
             var statusPanel = document.getElementById("gfn_status");
             if(statusPanel != null){
-                statusPanel.setAttribute(msg);
+                statusPanel.setAttribute("label", msg);
             }
         }
         if(persist){
+            // TODO: Make this work!!
             var em = Components.classes["@mozilla.org/extensions/manager;1"].getService(Components.interfaces.nsIExtensionManager);
             var logFile = em.getInstallLocation(GriffinCommon.extensionId).getItemFile(GriffinCommon.extensionId, GriffinCommon.logFile);
             if(!logFile.exists()){
-                logFile.create();
+                // 468 (dec) = 666 (oct) -> rw permissions for all users? How did I calculate this? http://www.robolink.co.uk/calculators10.htm
+                logFile.create(logFile.NORMAL_FILE_TYPE, 438);
             }
-            logFile.append(msg);
+            var obj = Components.classes["@mozilla.org/network/safe-file-output-stream;1"].createInstance(Components.interfaces.nsIFileOutputStream);
+            obj.init(logFile, -1, -1, 0);
+            obj.write(msg, msg.length);
+            obj.close();
         }
     },
         
@@ -145,7 +154,7 @@
                 default: return prefs.getCharPref(pref);
             }
         } catch (e){
-            // Above functions will throw NS_ERROR_UNEXPECTED on unset prefs. Return null and let consumer pick a default.
+            // Above functions will throw NS_ERROR_UNEXPECTED on unset prefs. I'd rather return null and let consumer pick a default.
             return null;
         }
     },
@@ -164,6 +173,7 @@
         }
     },
     
+    // TODO: Perhaps this should be somewhere else? Called on both addMessage, and synchContact methods.
     getCardForContact: function(contact, fieldMaps){
         var queryString = "?(or";
         for(var currMapIdx = 0; currMapIdx < fieldMaps.length; ++currMapIdx){
@@ -189,6 +199,7 @@
         return GriffinCommon.getBestMatch(fieldMaps, candidates);
     },
     
+    // TODO: Perhaps this should be somewhere else? See getCardForContact
     getBestMatch: function(fieldMaps, possibleMatches, contact){
         var bestMatchValue = 0;
         var bestMatch = null;
@@ -202,6 +213,7 @@
         return bestMatch;
     },
     
+    // TODO: Perhaps this should be somewhere else? See getCardForContact
     getMatchStrength: function(fieldMaps, candidateCard, contact){
         var str = 0;
         for(var mapIdx = 0; mapIdx < fieldMaps.length; mapIdx++){
