@@ -88,6 +88,7 @@
         return year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second + "Z";
     },
     
+    // TODO: Globalise synch messages
     getSFDCUpdatedContacts: function(lastUpdateDate, now, retreiveFields, fn_updateMethod){
         // If more than 30 days since last synch, can't use getUpdated. Go for a full blown SOQL query.
         var millisPerMinute = 60 * 1000;
@@ -97,22 +98,28 @@
         
         if((now.getTime() - lastUpdateDate.getTime()) > (30 * millisPerDay)){
             // TODO: Globalise
-            GriffinCommon.log("Synchronising contacts (SOQL)...", false, true, false);
+            GriffinCommon.log("Synchronising contacts (SOQL)...", true, true, false);
             // Use SOQL to get updated records, as too much time has passed to use getUpdated                
             var soql = "SELECT " + retreiveFields + " FROM Contact WHERE LastModifiedDate > " + GriffinMessage.formatDateSfdc(lastUpdateDate);
+            var userInfo;
             if(ownershipLimited == "ME"){
-                var userInfo = sforce.connection.getUserInfo();
+                GriffinCommon.log("Limiting SOQL to just my contacts.", true, false, true);
+                // TODO: make getUserInfo query asynch (somehow!);
+                userInfo = sforce.connection.getUserInfo();
                 soql += " AND OwnerId = '" + userInfo.Id + "'"; 
             }
             if(ownershipLimited == "MYTEAM"){
                 // TODO: Really should test this.
-                var userInfo = sforce.connection.getUserInfo();
+                GriffinCommon.log("Limiting SOQL to just my team.", true, false, true);
+                // TODO: make getUserInfo query asynch (somehow!);
+                userInfo = sforce.connection.getUserInfo();
                 var roleRes = sforce.connection.retrieve("UserRoleId", "User", [userInfo.Id]);
                 var teamRoles = [ roleRes.UserRoleId ];
                 for(var i = 0; i < teamRoles.length; i++){
+                    // TODO: Make roles query asynch (somehow!)
                     var childRoles = sforce.connection.query("Select Id from UserRole Where ParentRoleId = '" + teamRoles[i] + "'");
                     var res = childRoles.getArray("records");
-                    for(var i = 0; i < res.length; i++){
+                    for(var j = 0; j < res.length; j++){
                         teamRoles.push(res[i].Id);
                     }
                 }
@@ -125,9 +132,12 @@
                 }
                 soql += ")";
             }
+            GriffinCommon.log("querying salesforce using SOQL: " + soql, true, false, true);
             // TODO: Security. SOQL injection possible?? Would probably only crash out, but worth checking.
             var result = sforce.connection.query(soql, {
-                onSuccess: fn_updateMethod,
+                onSuccess: function(result){
+                    fn_updateMethod(result.getArray("records"));
+                    },
                 onFailure: function(err){
                     GriffinCommon.log(err, true, false, true);
                 },
@@ -135,12 +145,12 @@
             });
         }
         else if ((now.getTime() - lastUpdateDate.getTime()) < millisPerMinute) {
+            GriffinCommon.log("Less than a minute since last query. Griffin Ignores you for 10 damage.");
             fn_updateMethod([]);
         }
         else{
             // TODO: filter results of getUpdated by Ownership criteria (is there any point in doing it then, esp given it's causing pain elsewhere?)
-            // TODO: Globalise
-            GriffinCommon.log("Synchronising contacts (getUpdated)...", false, true, false);
+            GriffinCommon.log("Synchronising contacts (getUpdated)...", true, true, false);
             sforce.connection.getUpdated("Contact", lastUpdateDate, now, {
                 onSuccess: function(result){
                     sforce.connection.retrieve(retreiveFields, "Contact", result.getArray("ids"), {
@@ -196,20 +206,23 @@
         GriffinCommon.log("updateABFromContacts - " + contacts.length + " contacts to synch", true, false, true);
         var abDirUri = "moz-abmdbdirectory://abook.mab";
         var defaultDirectory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(Components.interfaces.nsIAbDirectory);
+        var fieldMap = GriffinCommon.getFieldMap("Contact");
         for(var i = 0; i < contacts.length; i++){
-            GriffinCommon.log("Synchronising updates (" + i + "/" + contacts.length + ").", true, true, false);
+            GriffinCommon.log("Synchronising updates (" + (i + 1) + "/" + contacts.length + ").", true, true, false);
             GriffinCommon.log("Id: " + contacts[i].Id, true, false, true);
-            window.setTimeout("document.getElementById('synch_progress').value = " + (i * 100 / contacts.length), 0);
+            window.setTimeout("document.getElementById('synch_progress').value = " + ((i + 1) * 100 / contacts.length), 0);
             var currContact = contacts[i];
             
-            var matchObj = GriffinCommon.getCardForContact(currContact, [{tbirdField: "Custom1", sfdcField: "Id", strength: 100}]);
+            var matchObj = GriffinCommon.getCardForContact(currContact, [{tbirdField: "custom1", sfdcField: "Id", strength: 100}]);
             // Should have found the matchObj by now otherwise we're adding a new card.
             var newCard = (matchObj == null);
             var cardMatch = null;
             if(newCard){
+                GriffinCommon.log("Contact not found - Creating new card.", true, false, true);
                 cardMatch = Components.classes["@mozilla.org/addressbook/cardproperty;1"].createInstance(Components.interfaces.nsIAbCard);
             }
             else{
+                GriffinCommon.log("Contact found - Updating card.", true, false, true);
                 cardMatch = matchObj.Card;
             }
             GriffinMessage.setProps(cardMatch, fieldMap, currContact);
