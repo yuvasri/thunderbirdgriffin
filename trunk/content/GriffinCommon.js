@@ -175,6 +175,8 @@ var GriffinCommon = {
     
     // TODO: Perhaps this should be somewhere else? Called on both addMessage, and synchContact methods.
     getCardForContact: function(contact, fieldMaps){
+        // TODO: Limit getCardForContact search so that we only get getBestMatch on relevant cards (ie ones that match on at least one field). Partially implemented.
+        /*
         var queryString = "?(or";
         for(var currMapIdx = 0; currMapIdx < fieldMaps.length; ++currMapIdx){
             if(currMapIdx > 0)
@@ -183,6 +185,7 @@ var GriffinCommon = {
             queryString += "(" + currMap.tbirdField + ",c," + contact[currMap.sfdcField] + ")"
         }
         queryString += ")";
+        */
         var candidates = [];
         var rdfService = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService);
         // enumerate all of the address books on this system
@@ -190,13 +193,28 @@ var GriffinCommon = {
         var enumerator = parentDir.childNodes;
         while (enumerator.hasMoreElements()) {
             var addrbook = enumerator.getNext().QueryInterface(Components.interfaces.nsIAbDirectory);
-            var childCards = addrbook.childNodes;            
-            while (childCards.hasMoreElements()) {
-                var card = childCards.getNext().QueryInterface(Components.interfaces.nsIAbCard);
+            var childCards = addrbook.childCards;   
+            // childCards is an nsIEnumerator, not nsiSimpleEnumerator.
+            //http://thunderbirddocs.blogspot.com/2005/05/thunderbird-extensions-documentation_31.html
+            var keepGoing = 1;
+            try{
+                childCards.first();
+            }catch(err){
+                GriffinCommon.log("childCards.first errored - " + err, true, false, false);
+                keepGoing = 0;
+            }
+            while(keepGoing == 1){
+                var card = childCards.currentItem().QueryInterface(Components.interfaces.nsIAbCard);                    
                 candidates.push({Card: card, Directory: addrbook.directoryProperties.URI});
+                try{
+                    childCards.next();
+                }catch(err){
+                    GriffinCommon.log("childCards.next errored - " + err, true, false, false);
+                    keepGoing = 0;
+                }
             }
         }
-        return GriffinCommon.getBestMatch(fieldMaps, candidates);
+        return GriffinCommon.getBestMatch(fieldMaps, candidates, contact);
     },
     
     // TODO: Perhaps this should be somewhere else? See getCardForContact
@@ -204,7 +222,7 @@ var GriffinCommon = {
         var bestMatchValue = 0;
         var bestMatch = null;
         for(var idx = 0; idx < possibleMatches.length; possibleMatches++){
-            var matchStrength = GriffinCommon.getMatchStrength(fieldMaps, possibleMatches[idx].Card);
+            var matchStrength = GriffinCommon.getMatchStrength(fieldMaps, possibleMatches[idx].Card, contact);
             if(matchStrength > bestMatchValue){
                 bestMatch = possibleMatches[idx];
                 bestMatchValue = matchStrength;

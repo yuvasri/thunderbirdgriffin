@@ -56,6 +56,7 @@
   </ProjectExtensions>
   <ItemGroup>
     <None Include="chrome.manifest" />
+    <None Include="content\about.xul" />
     <None Include="content\cardOverlay.xul" />
     <None Include="content\login.xul" />
     <None Include="content\options.xul" />
@@ -63,8 +64,8 @@
     <None Include="griffin.sqlite" />
     <None Include="griffin.xpi" />
     <None Include="install.rdf" />
+    <None Include="locale\en-US\about.dtd" />
     <None Include="locale\en-US\cardOverlay.dtd" />
-    <None Include="locale\en-US\hello.dtd" />
     <None Include="locale\en-US\login.dtd" />
     <None Include="locale\en-US\options.dtd" />
     <None Include="locale\en-US\options.properties" />
@@ -82,6 +83,7 @@
     <Content Include="content\prototype_yui.js" />
     <Content Include="content\GriffinCommon.js" />
     <Content Include="defaults\preferences\defaultprefs.js" />
+    <Content Include="skin\about.css" />
     <Content Include="skin\ajax-loader.gif" />
     <Content Include="skin\cardOverlay.css" />
     <Content Include="skin\login.css" />

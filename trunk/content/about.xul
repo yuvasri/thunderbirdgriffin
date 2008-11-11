@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml-stylesheet href="chrome://griffin/skin/about.css" type="text/css"?>
+<!DOCTYPE window SYSTEM "chrome://griffin/locale/about.dtd">
+<window id="gfn_about"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        xmlns:nc="http://home.netscape.com/NC-rdf#"
+        title="&about.title;"
+        screenX="100"
+        screenY="110"
+        height="570"
+        width="500"
+        persist="width height screenX screenY">
+  <label>Some Text Here!</label>
+</window>
