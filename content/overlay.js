@@ -24,6 +24,7 @@
         if(timeTillSynch < 0){
             timeTillSynch = 0;
         }
+        GriffinCommon.log("timeTillSynch: " + timeTillSynch, true, false, true);
         // When the first synch comes around we want to 
         // a) Synch (obviously)
         // b) Schedule the synch to run as often as set in the prefs.
@@ -68,7 +69,7 @@
         window.open("chrome://griffin/content/options.xul", "options", "chrome,resizable=yes,titlebar");
     },
     
-    // TODO: Undirty-ify the padLeft function.
+    // TODO: Unstink-ify the padLeft function (there must be a way!!).
     padLeft: function(inString, padChar, targetLen){
         while(inString.length < targetLen){
             inString = padChar + inString;
@@ -87,12 +88,13 @@
         return year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second + "Z";
     },
     
-    getSFDCUpdatedContacts: function(lastUpdateDate, now, retreiveFields){
+    getSFDCUpdatedContacts: function(lastUpdateDate, now, retreiveFields, fn_updateMethod){
         // If more than 30 days since last synch, can't use getUpdated. Go for a full blown SOQL query.
-        var millisPerDay = 24 * 60 * 60 * 1000;
-        var contacts = null;
+        var millisPerMinute = 60 * 1000;
+        var millisPerDay = 24 * 60 * millisPerMinute;
         // TODO: Allow synch criteria other than ownership.
         var ownershipLimited = GriffinCommon.getPrefValue("synchContactOwnedBy", "string");
+        
         if((now.getTime() - lastUpdateDate.getTime()) > (30 * millisPerDay)){
             // TODO: Globalise
             GriffinCommon.log("Synchronising contacts (SOQL)...", false, true, false);
@@ -103,6 +105,7 @@
                 soql += " AND OwnerId = '" + userInfo.Id + "'"; 
             }
             if(ownershipLimited == "MYTEAM"){
+                // TODO: Really should test this.
                 var userInfo = sforce.connection.getUserInfo();
                 var roleRes = sforce.connection.retrieve("UserRoleId", "User", [userInfo.Id]);
                 var teamRoles = [ roleRes.UserRoleId ];
@@ -123,18 +126,37 @@
                 soql += ")";
             }
             // TODO: Security. SOQL injection possible?? Would probably only crash out, but worth checking.
-            var result = sforce.connection.query(soql);
-                
-            contacts = result.getArray("records");
+            var result = sforce.connection.query(soql, {
+                onSuccess: fn_updateMethod,
+                onFailure: function(err){
+                    GriffinCommon.log(err, true, false, true);
+                },
+                timeout: 5000
+            });
+        }
+        else if ((now.getTime() - lastUpdateDate.getTime()) < millisPerMinute) {
+            fn_updateMethod([]);
         }
         else{
             // TODO: filter results of getUpdated by Ownership criteria (is there any point in doing it then, esp given it's causing pain elsewhere?)
             // TODO: Globalise
             GriffinCommon.log("Synchronising contacts (getUpdated)...", false, true, false);
-            result = sforce.connection.getUpdated("Contact", lastUpdateDate, now);
-            contacts = sforce.connection.retrieve(retreiveFields, "Contact", result.getArray("ids"));
+            sforce.connection.getUpdated("Contact", lastUpdateDate, now, {
+                onSuccess: function(result){
+                    sforce.connection.retrieve(retreiveFields, "Contact", result.getArray("ids"), {
+                        onSuccess: fn_updateMethod,
+                        onFailure:  function(err){
+                            GriffinCommon.log(err, true, false, true);
+                        },
+                        timeout: 5000
+                    });
+                },
+                onFailure: function(err){
+                    GriffinCommon.log(err, true, false, true);
+                },
+                timeout: 5000
+            });
         }
-        return contacts;
     },
     
     beginSynchContacts: function(){
@@ -143,8 +165,7 @@
            synchContactDir == "SFDC") {
            
             GriffinCommon.log("Synchronising contacts...", true, true, false);
-            var progressbar = document.getElementById("synch_progress");
-            progressbar.value = 0;
+            document.getElementById("synch_progress").value = 0;
             
             if(!GriffinCommon.ensureLogin()) {
                 return;
@@ -165,44 +186,49 @@
             var lastUpdateDate = new Date();
             lastUpdateDate.setTime(prefTime);
             var now = new Date();
-            var contacts = GriffinMessage.getSFDCUpdatedContacts(lastUpdateDate, now, retreiveFields);            
-            
-            // TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
-            // TODO: Synch across multiple address books.
-            var abDirUri = "moz-abmdbdirectory://abook.mab";
-            var defaultDirectory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(Components.interfaces.nsIAbDirectory);
-            for(var i = 0; i < contacts.length; i++){
-                GriffinCommon.log("Synchronising updates (" + i + "/" + contacts.length + ").", true, true, false);
-                GriffinCommon.log("Id: " + contacts[i].Id, true, false, true);
-                window.setTimeout("document.getElementById('synch_progress').value = " + (i * 100 / contacts.length), 0);
-                var currContact = contacts[i];
-                
-                var matchObj = GriffinCommon.getCardForContact(currContact, [{tbirdField: "Custom1", sfdcField: "Id", strength: 100}]);
-                // Should have found the matchObj by now otherwise we're adding a new card.
-                var newCard = (matchObj == null);
-                var cardMatch = null;
-                if(newCard){
-                    cardMatch = Components.classes["@mozilla.org/addressbook/cardproperty;1"].createInstance(Components.interfaces.nsIAbCard);
-                }
-                else{
-                    cardMatch = matchObj.Card;
-                }
-                GriffinMessage.setProps(cardMatch, fieldMap, currContact);
-                if(newCard){
-                    defaultDirectory.addCard(cardMatch);
-                }
-                else{
-                    cardMatch.editCardToDatabase(matchObj.Directory);
-                }
-            }
-            var propogateDeletions = GriffinCommon.getPrefValue("synchDeletions", "propogateDeletions");
-            if(propogateDeletions){
-                //TODO: Should probably synch deletions here :-)
-            }
-            progressbar.value = 100;
-            GriffinCommon.setPrefValue("lastSynch", now.getTime(), "string");
-            GriffinCommon.log("Griffin Status", false, true, false);
+            GriffinMessage.getSFDCUpdatedContacts(lastUpdateDate, now, retreiveFields, GriffinMessage.updateABFromContacts);            
         }
+    },
+    
+    updateABFromContacts: function(contacts){        
+        // TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
+        // TODO: Synch across multiple address books.
+        GriffinCommon.log("updateABFromContacts - " + contacts.length + " contacts to synch", true, false, true);
+        var abDirUri = "moz-abmdbdirectory://abook.mab";
+        var defaultDirectory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(Components.interfaces.nsIAbDirectory);
+        for(var i = 0; i < contacts.length; i++){
+            GriffinCommon.log("Synchronising updates (" + i + "/" + contacts.length + ").", true, true, false);
+            GriffinCommon.log("Id: " + contacts[i].Id, true, false, true);
+            window.setTimeout("document.getElementById('synch_progress').value = " + (i * 100 / contacts.length), 0);
+            var currContact = contacts[i];
+            
+            var matchObj = GriffinCommon.getCardForContact(currContact, [{tbirdField: "Custom1", sfdcField: "Id", strength: 100}]);
+            // Should have found the matchObj by now otherwise we're adding a new card.
+            var newCard = (matchObj == null);
+            var cardMatch = null;
+            if(newCard){
+                cardMatch = Components.classes["@mozilla.org/addressbook/cardproperty;1"].createInstance(Components.interfaces.nsIAbCard);
+            }
+            else{
+                cardMatch = matchObj.Card;
+            }
+            GriffinMessage.setProps(cardMatch, fieldMap, currContact);
+            if(newCard){
+                defaultDirectory.addCard(cardMatch);
+            }
+            else{
+                cardMatch.editCardToDatabase(matchObj.Directory);
+            }
+        }
+        var propogateDeletions = GriffinCommon.getPrefValue("synchDeletions", "propogateDeletions");
+        if(propogateDeletions){
+            //TODO: Should probably synch deletions here :-)
+        }
+        document.getElementById("synch_progress").value = 100;
+        // TODO: Fix up the time that we're setting the last synch to. Must set to the time we set in salesforce query, not time update ends.
+        var now = new Date();
+        GriffinCommon.setPrefValue("lastSynch", now.getTime(), "string");
+        GriffinCommon.log("Griffin Status", false, true, false);
     },
     
     setProps: function(card, fieldMap, contact){
