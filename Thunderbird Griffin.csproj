@@ -97,7 +97,7 @@
 del griffin*.xpi
 FOR /F "delims=&lt;.&gt; tokens=3,4,5" %25%25F IN ('FIND "&lt;em:version&gt;" install.rdf') DO SET GrifVer=%25%25F_%25%25G_%25%25H
 "C:\Program Files\7Zip\7z.exe" -tZIP u griffin.xpi @xpiInclude.txt
-REN griffin.xpi griffin_v%25GrifVer%25.xpi</PostBuildEvent>
+COPY griffin.xpi griffin_v%25GrifVer%25.xpi</PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />

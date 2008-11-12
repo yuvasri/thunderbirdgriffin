@@ -27,6 +27,7 @@ var GriffinCard = {
             else{
                 result = sforce.connection.create([contact]);
                 if(result[0].getBoolean("success")){
+                    // TODO: Deal with non-editable salesforce fields.
                     gEditCard.card[GriffinCard.getIdField(fieldMap)] = result[0].id;
                 }
                 else{
@@ -42,7 +43,7 @@ var GriffinCard = {
     getIdField: function(fieldMap){
         for(var i = 0; i < fieldMap.length; i++){
             if(fieldMap[i].sfdcField == "Id"){
-                return fieldMap[i].tBirdField;
+                return fieldMap[i].tbirdField;
             }
         }
         return null;
@@ -52,7 +53,7 @@ var GriffinCard = {
         var contact = new sforce.SObject("Contact");
         for(var i = 0; i < fieldMap.length; i++){
             var currMapping = fieldMap[i];
-            contact[currMapping.sfdcField] = card[currMapping.tBirdField];
+            contact[currMapping.sfdcField] = card[currMapping.tbirdField];
         }
         return contact;
     }
