@@ -71,13 +71,14 @@ var GriffinCommon = {
     
     getFieldMap: function(obj){    
         var connection = GriffinCommon.getDbConnection();
-        var statement = connection.createStatement("SELECT tBirdField, sfdcField FROM FieldMap fm, TBirdFields t WHERE t.fieldId = fm.fieldId AND t.object = '" + obj + "'");
+        var statement = connection.createStatement("SELECT tBirdField, sfdcField, strength FROM FieldMap fm, TBirdFields t WHERE t.fieldId = fm.fieldId AND t.object = '" + obj + "'");
         var fieldMap = [];
         try{
             while(statement.executeStep()){
                 var s_tBirdField = statement.getUTF8String(0);
                 var s_sfdcField = statement.getUTF8String(1);
-                fieldMap.push( { tBirdField: s_tBirdField, sfdcField: s_sfdcField });
+                var s_strength = statement.getUTF8String(2);
+                fieldMap.push( { tbirdField: s_tBirdField, sfdcField: s_sfdcField, strength: s_strength});
             }
             return fieldMap;
         }
@@ -175,7 +176,7 @@ var GriffinCommon = {
     
     // TODO: Perhaps this should be somewhere else? Called on both addMessage, and synchContact methods.
     getCardForContact: function(contact, fieldMaps){
-        // TODO: Limit getCardForContact search so that we only get getBestMatch on relevant cards (ie ones that match on at least one field). Partially implemented.
+        // TODO: Limit getCardForContact search so that we only get getBestMatch on relevant cards (ie ones that match on at least one field). Partially implemented, see commented out code.
         /*
         var queryString = "?(or";
         for(var currMapIdx = 0; currMapIdx < fieldMaps.length; ++currMapIdx){
@@ -193,14 +194,25 @@ var GriffinCommon = {
         var enumerator = parentDir.childNodes;
         while (enumerator.hasMoreElements()) {
             var addrbook = enumerator.getNext().QueryInterface(Components.interfaces.nsIAbDirectory);
-            var childCards = addrbook.childCards;   
-            // childCards is an nsIEnumerator, not nsiSimpleEnumerator.
-            //http://thunderbirddocs.blogspot.com/2005/05/thunderbird-extensions-documentation_31.html
+            /*
+            var uri = addrbook.directoryProperties.URI + queryString;
+            var queryDir = rdfService.GetResource(uri).QueryInterface(Components.interfaces.nsIAbDirectory);
+            var childCards = queryDir.childNodes;
+            while(childCards.hasMoreElements()) {
+                var card = childCards.getNext().QueryInterface(Components.interfaces.nsIAbCard);
+                candidates.push({Card: card, Directory: addrbook.directoryProperties.URI});
+            }          
+            var childCards = queryDir.childCards;
+            */
+            var childCards = addrbook.childCards;
+            // childCards is an nsIEnumerator, not nsiSimpleEnumerator. We must call childCards.first(), 
+            // and if that works (no err) call childCards.next() until we do error. See Url for sample code.
+            // http://thunderbirddocs.blogspot.com/2005/05/thunderbird-extensions-documentation_31.html
             var keepGoing = 1;
             try{
                 childCards.first();
             }catch(err){
-                GriffinCommon.log("childCards.first errored - " + err, true, false, false);
+                //GriffinCommon.log("childCards.first errored - " + err, true, false, false);
                 keepGoing = 0;
             }
             while(keepGoing == 1){
@@ -209,7 +221,7 @@ var GriffinCommon = {
                 try{
                     childCards.next();
                 }catch(err){
-                    GriffinCommon.log("childCards.next errored - " + err, true, false, false);
+                    //GriffinCommon.log("childCards.next errored - " + err, true, false, false);
                     keepGoing = 0;
                 }
             }
@@ -221,13 +233,19 @@ var GriffinCommon = {
     getBestMatch: function(fieldMaps, possibleMatches, contact){
         var bestMatchValue = 0;
         var bestMatch = null;
-        for(var idx = 0; idx < possibleMatches.length; possibleMatches++){
+        for(var idx = 0; idx < possibleMatches.length; idx++){
             var matchStrength = GriffinCommon.getMatchStrength(fieldMaps, possibleMatches[idx].Card, contact);
             if(matchStrength > bestMatchValue){
                 bestMatch = possibleMatches[idx];
                 bestMatchValue = matchStrength;
             }
         }
+        if(bestMatchValue > 0){
+            GriffinCommon.log("Returning a matching card with score " + bestMatchValue, true, false, false);
+        } 
+        else{
+            GriffinCommon.log("No match found in getBestMatch function. Returning null.", true, false, false);
+        } 
         return bestMatch;
     },
     
@@ -237,7 +255,7 @@ var GriffinCommon = {
         for(var mapIdx = 0; mapIdx < fieldMaps.length; mapIdx++){
             var currMap = fieldMaps[mapIdx];
             if(contact[currMap.sfdcField] == candidateCard[currMap.tbirdField]){
-                str += currMap.strength;
+                str += Number(currMap.strength);
             }
         }
         return str;

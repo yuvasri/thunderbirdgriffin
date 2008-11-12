@@ -58,7 +58,7 @@
             var task = new sforce.SObject("Task");            
             for(var currFldIdx = 0; currFldIdx < taskMap.length; currFldIdx++){
                 var currFldMap = taskMap[currFldIdx];
-                task[currFldMap.sfdcField] = msg.getField(currFldMap.tBirdField);;
+                task[currFldMap.sfdcField] = msg.getField(currFldMap.tbirdField);
             }
             tasks.push(task);
         }
@@ -213,7 +213,7 @@
             window.setTimeout("document.getElementById('synch_progress').value = " + ((i + 1) * 100 / contacts.length), 0);
             var currContact = contacts[i];
             
-            var matchObj = GriffinCommon.getCardForContact(currContact, [{tbirdField: "custom1", sfdcField: "Id", strength: 100}]);
+            var matchObj = GriffinCommon.getCardForContact(currContact, fieldMap);
             // Should have found the matchObj by now otherwise we're adding a new card.
             var newCard = (matchObj == null);
             var cardMatch = null;
@@ -236,6 +236,7 @@
         var propogateDeletions = GriffinCommon.getPrefValue("synchDeletions", "propogateDeletions");
         if(propogateDeletions){
             //TODO: Should probably synch deletions here :-)
+            //TODO: Not relevant at this code point. But need to synch deletions in thunderbird to salesforce too.
         }
         document.getElementById("synch_progress").value = 100;
         // TODO: Fix up the time that we're setting the last synch to. Must set to the time we set in salesforce query, not time update ends.
@@ -246,7 +247,7 @@
     
     setProps: function(card, fieldMap, contact){
         for(var i = 0; i < fieldMap.length; i++){
-            var tbirdFld = fieldMap[i].tBirdField;
+            var tbirdFld = fieldMap[i].tbirdField;
             var sfdcFld = fieldMap[i].sfdcField;
             card[tbirdFld] = contact[sfdcFld];
         }
