@@ -10,5 +10,22 @@
         height="570"
         width="500"
         persist="width height screenX screenY">
-  <label>Some Text Here!</label>
+  <script type="application/x-javascript" src="chrome://global/content/globalOverlay.js"/>
+  <script type="application/x-javascript" src="chrome://global/content/contentAreaUtils.js"/>
+  <script type="application/x-javascript" src="chrome://global/content/nsTransferable.js"/>
+  <script type="application/x-javascript" src="chrome://global/content/nsTransferable.js"/>
+  <script type="application/x-javascript" src="chrome://global/content/nsTransferable.js"/>
+
+  <vbox>
+    <label>Griffin</label>
+    <label>version 0.0.3</label>
+    <menuseparator></menuseparator>
+    <label value="Get Extensions"
+   getMoreURL="https://en-GB.add-ons.mozilla.com/en-GB/thunderbird/2.0.0.17/extensions/"
+   id="getMore" 
+    valuethemes="Get Themes" valueextensions="Get Extensions"/>
+
+    <label>Developer: </label><label class="text-link" onclick="openURL('mailto://monkeypushbutton@googlemail.com');">David Hatfield</label> 
+  
+  </vbox>
 </window>
