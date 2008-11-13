@@ -70,6 +70,7 @@
     <None Include="locale\en-US\options.dtd" />
     <None Include="locale\en-US\options.properties" />
     <None Include="locale\en-US\overlay.dtd" />
+    <None Include="update.rdf" />
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>

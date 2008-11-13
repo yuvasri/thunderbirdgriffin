@@ -6,16 +6,21 @@
    
     <em:id>griffin@mpbsoftware.com</em:id>
     <em:name>Griffin Salesforce Extension</em:name>
-    <!-- A VS build script assumes that this is Major.Minor.Build[.Revision] ao keep it that way punk!-->
-    <em:version>0.0.3</em:version>
+    <!-- A VS build script assumes that this is Major.Minor.Build[.Revision] so keep it that way punk!-->
+    <em:version>0.0.4</em:version>
     <em:description>Provides an intuitive interface between salesforce and Thunderbird.</em:description>
     <em:creator>David Hatfield</em:creator>
     
-    <em:homepageURL>http://kb.mozillazine.org/Getting_started_with_extension_development</em:homepageURL>
-    <em:aboutURL>chrome://sampleext/content/about.xul</em:aboutURL>
+    <!-- TODO: a proper homepage -->
+    <em:homepageURL>http://code.google.com/p/thunderbirdgriffin/</em:homepageURL>
+    
+    <!-- TODO: About page -->
+    <em:aboutURL>chrome://griffin/content/about.xul</em:aboutURL>
+    <!-- TODO: Better Icon -->
     <em:iconURL>chrome://griffin/skin/mainicon.png</em:iconURL>
     
-    <em:updateURL>http://sampleextension.mozdev.org/update.rdf</em:updateURL>
+    <!-- TODO: Need to host this in a more stable location than my svn repo -->
+    <em:updateURL>http://thunderbirdgriffin.googlecode.com/svn/trunk/update.rdf</em:updateURL>
     
     <!-- Thunderbird -->
     <em:targetApplication>
