@@ -3,6 +3,8 @@ if (!Griffin) {
     Griffin = {};
 }
 
+//TODO: Give contacts a similar object to messages, to provide extensibility with extra fields.
+
 // Constructor
 Griffin.Message = function(uri){
     this.uri = uri;
@@ -34,7 +36,7 @@ Griffin.Message.prototype.getBody = function(){
 
 Griffin.Message.prototype.getContactId = function(){
     var id = "";
-    
+    // TODO: A way of getting an nsIAbCard from a message Uri (or a list of likely ones?).
     return id;
 };
 

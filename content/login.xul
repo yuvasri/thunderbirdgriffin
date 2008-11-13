@@ -16,14 +16,23 @@
   <script src="chrome://griffin/content/login.js"></script>
   
   <vbox id="gfn_loginWrapper" flex="1">
-    <label control="username">&login.username;</label>
-    <textbox id="username" persist="value"></textbox>
-    <label control="password">&login.password;</label>
-    <textbox type="password" id="password"></textbox>
-    <label control="url">&login.url;</label>
-    <textbox id="url"></textbox>
+    <hbox>
+      <label control="username">&login.username;</label>
+      <textbox id="username" persist="value"></textbox>
+    </hbox>
+    <hbox>
+      <label control="password">&login.password;</label>
+      <textbox type="password" id="password"></textbox>
+    </hbox>
+    <hbox>
+      <label control="url">&login.url;</label>
+      <textbox id="url"></textbox>
+    </hbox>
     <button id="submit" oncommand="GriffinLogin.login();" label="&login.login;"></button>
-    <checkbox id="rememberMe"></checkbox>
+    <hbox>
+      <label control="rememberMe">&login.rememberMe;</label>
+      <checkbox id="rememberMe"></checkbox>
+    </hbox>
     <label id="errMsg" class="lblErr"></label>
   </vbox>
 </window>

@@ -58,6 +58,7 @@
     <None Include="chrome.manifest" />
     <None Include="content\about.xul" />
     <None Include="content\cardOverlay.xul" />
+    <None Include="content\composeOverlay.xul" />
     <None Include="content\login.xul" />
     <None Include="content\options.xul" />
     <None Include="content\overlay.xul" />
@@ -66,6 +67,7 @@
     <None Include="install.rdf" />
     <None Include="locale\en-US\about.dtd" />
     <None Include="locale\en-US\cardOverlay.dtd" />
+    <None Include="locale\en-US\composeOverlay.dtd" />
     <None Include="locale\en-US\login.dtd" />
     <None Include="locale\en-US\options.dtd" />
     <None Include="locale\en-US\options.properties" />
@@ -75,18 +77,20 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="content\cardOverlay.js" />
+    <Content Include="content\composeOverlay.js" />
     <Content Include="content\connection.js" />
     <Content Include="content\FieldMap.js" />
     <Content Include="content\login.js" />
     <Content Include="content\Message.js" />
     <Content Include="content\options.js" />
     <Content Include="content\overlay.js" />
-    <Content Include="content\prototype_yui.js" />
     <Content Include="content\GriffinCommon.js" />
     <Content Include="defaults\preferences\defaultprefs.js" />
     <Content Include="skin\about.css" />
     <Content Include="skin\ajax-loader.gif" />
     <Content Include="skin\cardOverlay.css" />
+    <Content Include="skin\composeOverlay.css" />
+    <Content Include="skin\EmailToSfdc.png" />
     <Content Include="skin\login.css" />
     <Content Include="skin\mainicon.png" />
     <Content Include="skin\options.css" />
@@ -94,7 +98,10 @@
     <Content Include="xpiInclude.txt" />
   </ItemGroup>
   <PropertyGroup>
-    <PostBuildEvent>cd $(ProjectDir)
+    <PostBuildEvent>@echo off
+cd $(ProjectDir)
+FINDSTR "TODO" content\*.*&gt; ToDos.txt
+FINDSTR "TODO" *.rdf&gt;&gt; ToDos.txt
 del griffin*.xpi
 FOR /F "delims=&lt;.&gt; tokens=3,4,5" %25%25F IN ('FIND "&lt;em:version&gt;" install.rdf') DO SET GrifVer=%25%25F_%25%25G_%25%25H
 "C:\Program Files\7Zip\7z.exe" -tZIP u griffin.xpi @xpiInclude.txt

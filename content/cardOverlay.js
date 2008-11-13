@@ -7,7 +7,7 @@ var GriffinCard = {
 
     saveCardToSFDC: function(){
         if(!GriffinCommon.ensureLogin()) {
-            // TODO: Make some backup mechanism for saving contact info to sfdc.
+            // TODO: Make some backup mechanism for saving contact info to sfdc - presumably smoething to do with the scheduled synch.
             // TODO: Globalise?
             GriffinCommon.log("Changes not saved to salesforce! What am I going to do!!", true, false, true);
             return;
