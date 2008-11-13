@@ -13,9 +13,7 @@
   <script type="application/x-javascript" src="chrome://global/content/globalOverlay.js"/>
   <script type="application/x-javascript" src="chrome://global/content/contentAreaUtils.js"/>
   <script type="application/x-javascript" src="chrome://global/content/nsTransferable.js"/>
-  <script type="application/x-javascript" src="chrome://global/content/nsTransferable.js"/>
-  <script type="application/x-javascript" src="chrome://global/content/nsTransferable.js"/>
-
+  <!-- TODO: Get about.xul right. -->
   <vbox>
     <label>Griffin</label>
     <label>version 0.0.3</label>
