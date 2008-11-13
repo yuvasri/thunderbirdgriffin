@@ -1,7 +1,13 @@
 ﻿// TODO: Try to find a way to trick salesforce into tracking messages as per HTML emails sent within salesforce.
 
 var Gfn_Compose = { 
-    sendListener: function(evt){
+    sendListener: {
+          OnStopSending: function(aMsgID, aStatus, aMsg, returnFileSpec){
+            
+          }
+    },
+
+    sendListenerHook: function(evt){
         
         if(!document.getElementById("btn_gfn_salesforceAdd").checked){
             return true;
@@ -15,4 +21,4 @@ var Gfn_Compose = {
     }
 };
 
-document.getElementById("msgcomposeWindow").addEventListener("compose-send-message", Gfn_Compose.sendListener, false);
+document.getElementById("msgcomposeWindow").addEventListener("compose-send-message", Gfn_Compose.sendListenerHook, false);
