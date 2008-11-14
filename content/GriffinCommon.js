@@ -11,15 +11,32 @@ var GriffinCommon = {
         do{
             last = opener;
             opener = opener.opener;
-            //alert('opener.location.href: ' + opener.location.href + '\r\nlast.location.href: ' + last.location.href);
         } while(opener != null && opener.location && opener.location.href != last.location.href);
         return last;
     },
     
+    // TODO: Unstink-ify the padLeft function (there must be a way!!).
+    padLeft: function(inString, padChar, targetLen){
+        while(inString.length < targetLen){
+            inString = padChar + inString;
+        }
+        return inString;
+    },
+    
+    formatDateSfdc: function(inDate){
+        var year = GriffinCommon.padLeft(inDate.getUTCFullYear().toString(), "0", 4);
+        // Gotcha! getMonth runs from 0-11, so add one to result!
+        var month = GriffinCommon.padLeft((inDate.getUTCMonth() + 1).toString(), "0", 2); 
+        var day = GriffinCommon.padLeft(inDate.getUTCDate().toString(), "0", 2);
+        var hour = GriffinCommon.padLeft(inDate.getUTCHours().toString(), "0", 2);
+        var minute = GriffinCommon.padLeft(inDate.getUTCMinutes().toString(), "0", 2);
+        var second = GriffinCommon.padLeft(inDate.getUTCSeconds().toString(), "0", 2);
+        return year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second + "Z";
+    },
+    
     ensureLogin: function(){   
-        var status = document.getElementById("gfn_status");
         if(status != null){     
-            status.setAttribute("label", "Logging in...");
+            GriffinCommon.log("Logging in...", true, true, false);
         }
         if(sforce.connection.sessionId == null){
             var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
@@ -41,7 +58,7 @@ var GriffinCommon = {
                             sforce.connection.serverUrl = loginResult.serverUrl;      
                          } catch (e) {
                             // TODO: Globalise.
-                            GriffinCommon.log('Stored login for ' + queryString + ' failed with error ' + e, true, false, true);
+                            GriffinCommon.log('Stored login for ' + queryString + ' failed with error ' + e, true, true, true);
                          }
                          break;
                     }
@@ -54,16 +71,15 @@ var GriffinCommon = {
                 var dialog = window.openDialog('chrome://griffin/content/login.xul', '_blank', 'modal');
             }
         }
-        // May have still not logged in (eg cancelled the login dialog).
+        // May have still not logged in (e.g. cancelled the login dialog).
         var hasLoggedIn = sforce.connection.sessionId != null;                              
         if(status != null){
+            // TODO: Globalise login status messages
             if(hasLoggedIn){
-                // TODO: Globalise
-                status.setAttribute("label", "Login successful...");
+                GriffinCommon.log("Login successful...", true, true, false);
             }
             else{
-                // TODO: Globalise
-                status.setAttribute("label", "Login failed. See Error Console for details.");                
+                GriffinCommon.log("Login failed. See Error Console for details.", true, true, false);                
             }
         }
         return hasLoggedIn
@@ -259,6 +275,14 @@ var GriffinCommon = {
             }
         }
         return str;
+    },
+    
+    logProps: function(obj){
+        var msg = "";
+        for(prop in obj){
+            msg += prop + ", "
+        }
+        GriffinCommon.log(msg, true, false, false);
     }
 };
 
@@ -272,6 +296,7 @@ else{
 
 /*
 // Lifted from http://mb.eschew.org/16#sub_16.7
+// May be useful for debugging rdf
 function _dumpFactSubtree(ds, sub, level)
 {
   var iter, iter2, pred, obj, objstr, result="";
@@ -307,7 +332,6 @@ function _dumpFactSubtree(ds, sub, level)
   return result;
 }
 
-// Lifted from http://mb.eschew.org/16#sub_16.7
 function dumpFromRoot(ds, rootURI)
 {
   return _dumpFactSubtree(ds, rootURI, 0);
