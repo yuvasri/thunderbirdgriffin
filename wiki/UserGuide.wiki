@@ -1,0 +1,20 @@
+#summary User Guide
+#labels Phase-Support,Featured
+
+= Introduction =
+
+The Griffin extension allows you to synchronise contacts and messages with Salesforce. 
+
+= Email =
+
+Emails in Thunderbird can be added as tasks in Salesforce. To accomplish this, select one or more emails in the thread pane (top right) of Thunderbird and right click. From the context menu, select the "Add to Salesforce" item. Once logged-in your task will appear in salesforce immediately.
+
+= Contacts =
+
+Contacts can be synchronised on a predetermined schedule, or on demand. A synchronisation can be initiated by choosing the Tools -> Griffin -> Synchronise Now option.
+
+To set up a scheduled synchronisation, use the options screen to configure a frequency.
+
+= Configuring Field Mappings =
+
+Field mappings are customisable to your needs. To change the field mappings for Contacts or Tasks, open the Griffin options window located at Tools -> Griffin -> Options. Choose Salesforcefields from the drop down menus to map to each Salesforcefield or the "Not Mapped" option to leave unmapped. The "Strength" column is used for matching contacts with Salesforce. When a contact is created in Salesforceit will attempt to be paired with a contact card already in Thunderbird , before a new card is created. If any card is found with an identical value in any of the strength fields, the Griffin extension will update this card, rather than creating a new card. If multiple matches are found, Griffin sums the strengths of the matched fields to calculate the strongest match.
