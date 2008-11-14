@@ -14,6 +14,7 @@
         // Calculate when the first synch should happen.
         var freq = Number(GriffinCommon.getPrefValue("synchContactFrequency", "int"));
         if(freq == 0){
+            GriffinCommon.log("No synch set-up");
             // No schedule.
             return;
         }
@@ -37,16 +38,82 @@
         timeoutFunc +=  "GriffinMessage.beginSynchContacts();";
         GriffinMessage.synchCancel = window.setTimeout(timeoutFunc, timeTillSynch);
     },
+    
+    gfn_folderListener: {
+        // Add \ Remove \ Event
+        OnItemAdded: function ( 
+        /*nsIRDFResource*/ parentItem , 
+        /*nsISupports*/ item ){
+            GriffinCommon.log("OnItemAdded parentItem: " + parentItem + " item: " + item);
+        },
+        OnItemRemoved: function ( 
+        /*nsIRDFResource*/ parentItem , 
+        /*nsISupports*/ item ){
+            GriffinCommon.log("OnItemAdded parentItem: " + parentItem + " item: " + item);
+        },        
+        OnItemEvent: function ( 
+        /*nsIMsgFolder*/ item , 
+        /*nsIAtom*/ event ){
+            GriffinCommon.log("OnItemAdded item: " + item + " event: " + event);
+        },
+        
+        // Property change
+        OnItemBoolPropertyChanged: function ( 
+        /*nsIRDFResource*/ item , 
+        /*nsIAtom*/ property , 
+        /*PRBool*/ oldValue , 
+        /*PRBool*/ newValue ){
+            GriffinCommon.log("OnItemBoolPropertyChanged item: " + item + " property: " + property + " oldValue: " + oldValue + " newValue: " + newValue);
+        }, 
+        OnItemIntPropertyChanged: function ( 
+        /*nsIRDFResource*/ item , 
+        /*nsIAtom*/ property ,
+        /*PRInt32*/ oldValue , 
+        /*PRInt32*/ newValue ){
+            GriffinCommon.log("OnItemIntPropertyChanged item: " + item + " property: " + property + " oldValue: " + oldValue + " newValue: " + newValue);
+        },
+        OnItemPropertyChanged: function ( 
+        /*nsIRDFResource*/ item , 
+        /*nsIAtom*/ property , 
+        /*char**/ oldValue , 
+        /*char**/ newValue ){
+            GriffinCommon.log("OnItemPropertyChanged item: " + item + " property: " + property + " oldValue: " + oldValue + " newValue: " + newValue);
+        },
+        OnItemPropertyFlagChanged: function ( 
+        /*nsIMsgDBHdr*/ item , 
+        /*nsIAtom*/ property , 
+        /*PRUint32*/ oldFlag , 
+        /*PRUint32*/ newFlag ){
+            GriffinCommon.log("OnItemPropertyFlagChanged item: " + item + " property: " + property + " oldFlag: " + oldFlag + " newFlag: " + newFlag);
+        },  
+        OnItemUnicharPropertyChanged: function ( 
+        /*nsIRDFResource*/ item , 
+        /*nsIAtom*/ property , 
+        /*PRUnichar**/ oldValue , 
+        /*PRUnichar**/ newValue ){
+            GriffinCommon.log("OnItemUnicharPropertyChanged item: " + item + " property: " + property + " oldValue: " + oldValue + " newValue: " + newValue);
+        },
+
+        QueryInterface : function(iid)
+        {
+          if (iid.equals(Components.interfaces.nsIFolderListener) )
+            return this;
+         
+          throw Components.results.NS_NOINTERFACE;
+        }
+    },
 
     onLoad: function(){
         GriffinMessage.scheduleSynch();
+        var mailSession = Components.classes["@mozilla.org/messenger/services/session;1"].getService(Components.interfaces.nsIMsgMailSession);
+        mailSession.AddFolderListener(GriffinMessage.gfn_folderListener, Components.interfaces.nsIFolderListener.all); 
     },
-  
+
     addSelectedMessages: function(){
         var messages = GetSelectedMessages();
         GriffinMessage.addMessages(messages);
-    },    
-  
+    },
+
     addMessages: function(messages){
         if(!GriffinCommon.ensureLogin()){
             return;
@@ -69,25 +136,6 @@
         window.open("chrome://griffin/content/options.xul", "options", "chrome,resizable=yes,titlebar");
     },
     
-    // TODO: Unstink-ify the padLeft function (there must be a way!!).
-    padLeft: function(inString, padChar, targetLen){
-        while(inString.length < targetLen){
-            inString = padChar + inString;
-        }
-        return inString;
-    },
-    
-    formatDateSfdc: function(inDate){
-        var year = GriffinMessage.padLeft(inDate.getUTCFullYear().toString(), "0", 4);
-        // Gotcha! getMonth runs from 0-11, so add one to result!
-        var month = GriffinMessage.padLeft((inDate.getUTCMonth() + 1).toString(), "0", 2); 
-        var day = GriffinMessage.padLeft(inDate.getUTCDate().toString(), "0", 2);
-        var hour = GriffinMessage.padLeft(inDate.getUTCHours().toString(), "0", 2);
-        var minute = GriffinMessage.padLeft(inDate.getUTCMinutes().toString(), "0", 2);
-        var second = GriffinMessage.padLeft(inDate.getUTCSeconds().toString(), "0", 2);
-        return year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second + "Z";
-    },
-    
     // TODO: Globalise synch messages
     getSFDCUpdatedContacts: function(lastUpdateDate, now, retreiveFields, fn_updateMethod){
         // If more than 30 days since last synch, can't use getUpdated. Go for a full blown SOQL query.
@@ -100,7 +148,7 @@
             // TODO: Globalise
             GriffinCommon.log("Synchronising contacts (SOQL)...", true, true, false);
             // Use SOQL to get updated records, as too much time has passed to use getUpdated                
-            var soql = "SELECT " + retreiveFields + " FROM Contact WHERE LastModifiedDate > " + GriffinMessage.formatDateSfdc(lastUpdateDate);
+            var soql = "SELECT " + retreiveFields + " FROM Contact WHERE LastModifiedDate > " + GriffinCommon.formatDateSfdc(lastUpdateDate);
             var userInfo;
             if(ownershipLimited == "ME"){
                 GriffinCommon.log("Limiting SOQL to just my contacts.", true, false, true);
@@ -145,8 +193,7 @@
             });
         }
         else if ((now.getTime() - lastUpdateDate.getTime()) < millisPerMinute) {
-            GriffinCommon.log("Less than a minute since last query. Griffin Ignores you for 10 damage.");
-            fn_updateMethod([]);
+            GriffinCommon.log("Less than a minute since last query. (Griffin Ignores you for 10 damage).", true, false, true);
         }
         else{
             // TODO: filter results of getUpdated by Ownership criteria (is there any point in doing it then, esp given it's causing pain elsewhere?)
@@ -255,7 +302,15 @@
     
     getFolderByName: function(fldName){
         return null;
+    },
+
+    // Taken from extensions.js loaded when the add on manager comes up.
+    openURL: function (aURL) {
+        var uri = Components.classes["@mozilla.org/network/io-service;1"].getService(Components.interfaces.nsIIOService).newURI(aURL, null, null);
+        var protocolSvc = Components.classes["@mozilla.org/uriloader/external-protocol-service;1"].getService(Components.interfaces.nsIExternalProtocolService);
+        protocolSvc.loadUrl(uri);
     }
+
 };
 
 window.addEventListener("load", GriffinMessage.onLoad, false);

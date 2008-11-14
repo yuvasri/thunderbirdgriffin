@@ -1,4 +1,6 @@
-﻿var FieldInfo = function(prop, label, fieldId){
+﻿// TODO: Add to options maintainance of salesforce username, password and server.
+
+var FieldInfo = function(prop, label, fieldId){
     this.fieldId = fieldId;
     this.prop = prop;
     this.label = label == null ? prop : label;

@@ -8,25 +8,32 @@
   <script src="chrome://griffin/content/FieldMap.js" type="text/javascript"></script>
   <script src="chrome://griffin/content/GriffinCommon.js" type="text/javascript"></script>
   <script src="chrome://griffin/content/overlay.js" type="text/javascript"></script>
-  
+
   <menupopup id="taskPopup">
     <menu id="gfn_menu" label="Griffin" insertafter="javaScriptConsole">
       <menupopup id="gfn_GriffinMenuPopup">
         <menuitem id="gfn_Options" label="Options..." oncommand="GriffinMessage.openOptions(event);"></menuitem>
         <menuitem id="gfn_SynchContacts" label="Synchronise Address Book" oncommand="GriffinMessage.beginSynchContacts();"></menuitem>
+        <menuitem id="griffinHelp" label="Help" oncommand="GriffinMessage.openURL('http://code.google.com/p/thunderbirdgriffin/wiki/UserGuide');"></menuitem>
       </menupopup>
     </menu>
   </menupopup>
 
+  <menupopup id="menu_HelpPopup">
+    <menuitem id="griffinHelp" label="Griffin Help" oncommand="GriffinMessage.openURL('http://code.google.com/p/thunderbirdgriffin/wiki/UserGuide');"></menuitem>
+  </menupopup>
+  
+  <!-- TODO: Folder subsriptions - synchronise all messages that end up in a particular folder. -->
+  <!-- TODO: Contact subsriptions - synchronise all messages to / from a given contact. -->
+  <popup id="folderPaneContext">
+    <menuitem insertafter="folderPaneContext-sendUnsentMessages" id="gfn_FLDR_synch" label="Mark folder for synch"></menuitem>
+  </popup>
+  
   <popup id="threadPaneContext">
     <menuitem insertafter="threadPaneContext-mark" id="gfn_THRD_AddToSalesforce" label="Add to salesforce" oncommand="GriffinMessage.addSelectedMessages();"></menuitem>
   </popup>
-
-  <!-- TODO: Folder subsriptions - synchronise all messages that end up in a particular folder. -->
-  <!-- TODO: Contact subsriptions - synchronise all messages to / from a given contact. -->
   <popup id="messagePaneContext">
-    <menuseparator id="gfn_MSG_GriffinContextFunctions" position="20"/>
-    <menuitem id="gfn_MSG_AddToSalesforce" label="Add to salesforce" position="21"></menuitem>
+    <menuitem insertafter="messagePaneContext-moveToFolderAgain" id="gfn_MSG_AddToSalesforce" label="Add to salesforce" oncommand="GriffinMessage.addSelectedMessages();"></menuitem>
   </popup>
   
   <statusbar id="status-bar">

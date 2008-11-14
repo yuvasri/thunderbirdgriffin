@@ -11,6 +11,14 @@ Griffin.Message = function(uri){
     this.innerMessage = messenger.msgHdrFromURI(uri);
     this.body = this.getBody();
     this.contactId = this.getContactId();
+    this.date = this.getDate();
+};
+
+Griffin.Message.prototype.getDate = function(){
+    // this.innerMessage.date appears to be in ticks - convert to millis and format it sfdc style to make usable.
+    var myDate = new Date();
+    myDate.setTime(this.innerMessage.date / 1000);
+    return GriffinCommon.formatDateSfdc(myDate);
 };
 
 // Uses global variables messenger and msgWindow. Lets hope they exist!
