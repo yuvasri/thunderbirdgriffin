@@ -9,13 +9,13 @@
         <!-- Each li is a different version of the same add-on -->
         <RDF:li>
           <RDF:Description>
-            <em:version>0.0.3</em:version>
+            <em:version>0.0.6</em:version>
             <em:targetApplication>
               <RDF:Description>
                 <em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id>
-                <em:minVersion>1.5</em:minVersion>
+                <em:minVersion>2.0.0.0</em:minVersion>
                 <em:maxVersion>2.0.0.*</em:maxVersion>
-                <em:updateLink>http://thunderbirdgriffin.googlecode.com/files/griffin_v0_0_3.xpi</em:updateLink>
+                <em:updateLink>http://thunderbirdgriffin.googlecode.com/files/griffin_v0_0_6.xpi</em:updateLink>
                 <em:updateHash>sha1:607c69bf81268ced68ff48398c31ec8473bf5be0</em:updateHash>
               </RDF:Description>
             </em:targetApplication>
