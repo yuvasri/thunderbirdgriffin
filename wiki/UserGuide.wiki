@@ -11,7 +11,7 @@ Emails in Thunderbird can be added as tasks in Salesforce. To accomplish this, s
 
 == Automatic Synchronisation ==
 
-Adding whole classes of messages to salesforce automatically could hardly be simpler. To set up the automatic addition of messages, create a rule that copies (NOT moves) desired messages to the "GriffinSynch" folder. Any messages added to this folder are immediately sent to salesforce and subsequently deleted.
+Adding whole classes of messages to salesforce automatically could hardly be simpler. To set up the automatic addition of messages, create a rule that copies (NOT moves) desired messages to the GriffinSynch folder. Any messages added to this folder are immediately sent to salesforce and subsequently deleted.
 
 = Contacts =
 
