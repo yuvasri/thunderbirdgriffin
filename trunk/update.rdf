@@ -16,7 +16,7 @@
                 <em:minVersion>2.0.0.0</em:minVersion>
                 <em:maxVersion>2.0.0.*</em:maxVersion>
                 <em:updateLink>http://thunderbirdgriffin.googlecode.com/files/griffin_v0_0_6.xpi</em:updateLink>
-                <em:updateHash>sha1:607c69bf81268ced68ff48398c31ec8473bf5be0</em:updateHash>
+                <em:updateHash>sha1:4847066e01201d679a161fd07beadf70c6e33b6c</em:updateHash>
               </RDF:Description>
             </em:targetApplication>
           </RDF:Description>
