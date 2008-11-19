@@ -7,7 +7,7 @@
             window.opener.sforce.connection.serverUrl = url;
             var loginResult = window.opener.sforce.connection.login(username, password);
             window.opener.sforce.connection.serverUrl = loginResult.serverUrl;
-            if(document.getElementById("rememberMe").checked){                
+            if(document.getElementById("rememberMe").checked){
                 var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
                 passwordManager.addUser(url, username, password);
             }

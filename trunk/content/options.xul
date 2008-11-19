@@ -20,28 +20,71 @@
   <tabbox  flex="1">
     <stringbundle id="bundle_options" src="chrome://griffin/locale/options.properties"></stringbundle>
     <tabs >
+      <tab label="&tabTitle.general;"></tab>
       <tab label="&tabTitle.contact;"/>
       <tab label="&tabTitle.task;"/>
     </tabs>
     <tabpanels flex="1" >
+      <!-- General panel -->
+      <tabpanel>
+        <vbox flex="1">
+          <groupbox>
+            <caption label="&general.login;"></caption>
+            <hbox>
+              <label>&general.username;</label>
+              <spacer flex="1"></spacer>
+              <textbox width="250" id="username"></textbox>
+            </hbox>
+            <hbox>
+              <label>&general.password;</label>
+              <spacer flex="1"></spacer>
+              <textbox width="250" id="password" type="password"></textbox>
+            </hbox>
+            <hbox>
+              <label>&general.serverUrl;</label>
+              <spacer flex="1"></spacer>
+              <textbox width="250" id="serverUrl"></textbox>
+            </hbox>
+            <hbox>
+              <label>&general.rememberMe;</label>
+              <spacer flex="1"></spacer>
+              <checkbox id="rememberMe"></checkbox>
+            </hbox>
+            <button label="&general.login;" oncommand="GriffinOptions.loginClick();"></button>
+          </groupbox>
+        </vbox>
+      </tabpanel>
       <tabpanel>
         <!-- Contacts panel -->
         <vbox flex="1">
-          <listbox id="synchDir" rows="3" flex="1">
-            <listitem label="&option.sychroniseBoth;" id="synchDir_BOTH" value="BOTH"  />
-            <listitem label="&option.fromSFDC;" id="synchDir_SFDC" value="SFDC" />
-            <listitem label="&option.fromTBird;" id="synchDir_TBIRD" value="TBIRD" />
-          </listbox>
-          <checkbox id="synchDeleted" label="Synch Deletions"/>
-          <listbox id="synchOwn" rows="3" flex="1">
-            <listitem label="&option.all;" id="synchOwn_ALL" value="ALL"  />
-            <listitem label="&option.my;" id="synchOwn_ME" value="ME" />
-            <listitem label="&option.team;" id="synchOwn_MYTEAM" value="MYTEAM" />
-          </listbox>
-          <textbox id="synchFreq"></textbox>
-          <!-- Items are added to this dynamically on load. -->
-          <vbox id="cnctMapping" flex="1" style="overflow: auto" class="loading">
-
+          <groupbox>
+            <caption label="&caption.synchDir;"></caption>
+            <listbox id="synchDir" rows="3" flex="1">
+              <listitem label="&option.sychroniseBoth;" id="synchDir_BOTH" value="BOTH"  />
+              <listitem label="&option.fromSFDC;" id="synchDir_SFDC" value="SFDC" />
+              <listitem label="&option.fromTBird;" id="synchDir_TBIRD" value="TBIRD" />
+            </listbox>
+            <checkbox id="synchDeleted" label="&lbl.synchDeletions;"/>
+          </groupbox>
+          <groupbox>
+            <caption label="&caption.synchOptions;"></caption>
+            <listbox id="synchOwn" rows="3" flex="1">
+              <listitem label="&option.all;" id="synchOwn_ALL" value="ALL"  />
+              <listitem label="&option.my;" id="synchOwn_ME" value="ME" />
+              <listitem label="&option.team;" id="synchOwn_MYTEAM" value="MYTEAM" />
+            </listbox>            
+            <hbox>
+              <label>&lbl.synchFreq;</label>
+              <spacer flex="1"></spacer>
+              <textbox id="synchFreq"></textbox>
+            </hbox>
+          </groupbox>
+          <vbox style="overflow: auto" flex="1">
+          <groupbox  id="cnctMapping"  class="loading">
+            <caption label="&caption.contactMap;" id="contactCaption"></caption>            
+            <!-- Items are added to this dynamically on load.  -->
+            
+          </groupbox>
           </vbox>
           <button id="reset" label="&button.resetLastSynch;" oncommand="GriffinOptions.resetLastSynch();"/>
         </vbox>
@@ -50,8 +93,10 @@
         <!-- Tasks Panel -->
         <vbox flex="1">
           <!-- Items are added to this dynamically on load. -->
-          <vbox id="taskMapping" flex="1" style="overflow: auto" class="loading">
-
+          <vbox flex="1" style="overflow: auto">
+            <groupbox id="taskMapping" class="loading">
+              <caption label="&caption.taskMap;"></caption>
+            </groupbox>
           </vbox>
         </vbox>
       </tabpanel>

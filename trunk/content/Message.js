@@ -52,5 +52,9 @@ Griffin.Message.prototype.getField = function(fld){
     if(this.hasOwnProperty(fld)){
         return this[fld];
     }
-    return this.innerMessage[fld];
+    if(this.innerMessage.hasOwnProperty(fld)){
+        return this.innerMessage[fld];
+    }
+    else 
+        return fld;
 };
