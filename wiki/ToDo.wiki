@@ -1,87 +1,135 @@
 #summary A summary of the ToDo tags in the codebase.
 #labels Phase-Requirements
 
-content\cardOverlay.js:		// TODO: Make some backup mechanism for saving contact info to sfdc.
 
-content\cardOverlay.js:		// TODO: Globalise?
-
-content\cardOverlay.js:		// TODO: Deal with non-editable salesforce fields.
-
-content\cardOverlay.js:		// TODO: Globalise?
-
-content\connection.js:		// TODO:  throw "value for field " + name + " is undefined"; Bug: 100000000000Ufg
+content\about.xul:  <!-- TODO: Get about.xul right. -->
 
 ----
-content\GriffinCommon.js:﻿	// TODO: Cache varous XPCOM classes used in this file? Performance?
 
-content\GriffinCommon.js:	// TODO: Globalise.
+content\cardOverlay.js:            // TODO: Make some backup mechanism for saving contact info to sfdc - presumably smoething to do with the scheduled synch.
 
-content\GriffinCommon.js:	// TODO: Globalise
+content\cardOverlay.js:            // TODO: Globalise?
 
-content\GriffinCommon.js:	// TODO: Globalise
+content\cardOverlay.js:                    // TODO: Deal with non-editable salesforce fields.
 
-content\GriffinCommon.js:	// TODO: Cache connection??
-
-content\GriffinCommon.js:	// TODO: Use nsIConsoleMessage interface of @mozilla.org/scripterror;1 for logging to error console - flexibility.
-
-content\GriffinCommon.js:	// TODO: Make persistant logging to file work!!
-
-content\GriffinCommon.js:	// TODO: Perhaps this should be somewhere else? Called on both addMessage, and synchContact methods.
-
-content\GriffinCommon.js:	// TODO: Limit getCardForContact search so that we only get getBestMatch on relevant cards (ie ones that match on at least one field). Partially implemented, see commented out code.
-
-content\GriffinCommon.js:	// TODO: Perhaps this should be somewhere else? See getCardForContact
-
-content\GriffinCommon.js:	// TODO: Perhaps this should be somewhere else? See getCardForContact
+content\cardOverlay.js:                    // TODO: Globalise?
 
 ----
-content\login.js:			// TODO: Globalise
-----
-content\options.js:			// TODO: Globalise
 
-content\options.js:			// TODO: Globalise
-
-content\options.js:			// TODO: Validate numeric-ness of strength fields.
-
-content\options.js:			// TODO: Validate Id field mapped?
-
-content\overlay.js:			// TODO: Unstink-ify the padLeft function (there must be a way!!).
-
-content\overlay.js:			// TODO: Globalise synch messages
-
-content\overlay.js:			// TODO: Allow synch criteria other than ownership.
-
-content\overlay.js:			// TODO: Globalise
-
-content\overlay.js:			// TODO: make getUserInfo query asynch (somehow!);
-
-content\overlay.js:			// TODO: Really should test this.
-
-content\overlay.js:			// TODO: make getUserInfo query asynch (somehow!);
-
-content\overlay.js:			// TODO: Make roles query asynch (somehow!)
-
-content\overlay.js:			// TODO: Security. SOQL injection possible?? Would probably only crash out, but worth checking.
-
-content\overlay.js:			// TODO: filter results of getUpdated by Ownership criteria (is there any point in doing it then, esp given it's causing pain elsewhere?)
-
-content\overlay.js:			// TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
-
-content\overlay.js:			// TODO: Synch across multiple address books.
-
-content\overlay.js:			// TODO: Should probably synch deletions here :-)
-
-content\overlay.js:			// TODO: Not relevant at this code point. But need to synch deletions in thunderbird to salesforce too.
-
-content\overlay.js:			// TODO: Fix up the time that we're setting the last synch to. Must set to the time we set in salesforce query, not time update ends.
+content\composeOverlay.js:﻿// TODO: Try to find a way to trick salesforce into tracking messages as per HTML emails sent within salesforce.
 
 ----
-install.rdf:				<!-- TODO: a proper homepage -->
 
-install.rdf:				<!-- TODO: About page -->
+content\connection.js:        //TODO:  throw "value for field " + name + " is undefined"; Bug: 100000000000Ufg
 
-install.rdf:				<!-- TODO: Better Icon -->
-
-install.rdf:				<!-- TODO: Need to host this in a more stable location than my svn repo -->
 ----
-update.rdf:					<!-- TODO: Signature required? -->
+
+content\GriffinCommon.js:﻿// TODO: Cache varous XPCOM classes used in GriffinCommon? Performance?
+
+content\GriffinCommon.js:    // TODO: Unstink-ify the padLeft function (there must be a way!!).
+
+content\GriffinCommon.js:    // TODO: Login asynchronously
+
+content\GriffinCommon.js:                // TODO: Globalise.
+
+content\GriffinCommon.js:        // TODO: Globalise login status messages
+
+content\GriffinCommon.js:    // TODO: Cache connection??
+
+content\GriffinCommon.js:            // TODO: Use nsIConsoleMessage interface of @mozilla.org/scripterror;1 for logging to error console - flexibility.
+
+content\GriffinCommon.js:            // TODO: Make persistant logging to file work!!
+
+content\GriffinCommon.js:    // TODO: Perhaps this should be somewhere else? Called on both addMessage, and synchContact methods. Some kind of OO class I imagine?
+
+content\GriffinCommon.js:        // TODO: Limit getCardForContact search so that we only get getBestMatch on relevant cards (ie ones that match on at least one field). Partially implemented, see commented out code.
+
+content\GriffinCommon.js:    // TODO: Perhaps getBestMatch should be somewhere else? See getCardForContact
+
+content\GriffinCommon.js:    // TODO: Perhaps getMatchStrength should be somewhere else? See getCardForContact
+
+----
+
+content\login.js:            // TODO: Globalise
+
+content\login.xul:<!-- TODO: Beautify the login dialog -->
+
+----
+
+content\Message.js://TODO: Give contacts a similar object to messages, to provide extensibility with extra fields.
+
+content\Message.js:    // TODO: A way of getting an nsIAbCard from a message Uri (or a list of likely ones?).
+
+----
+
+content\options.js:﻿// TODO: Options screen performs login twice, (tasks and contacts)
+
+content\options.js:// TODO: 
+
+content\options.js:                // TODO: Password manager - do we need to remove current login for this url before adding a new one?
+
+----
+
+content\options.js:                    // TODO: Globalise
+
+content\options.js:            // TODO: Globalise
+
+content\options.js:        // TODO: Validate numeric-ness of strength fields.
+
+content\options.js:        // TODO: Validate Id field mapped?
+
+content\overlay.js:        //TODO: Ensure a synch folder is set up at start time.
+
+content\overlay.js:        //TODO: Listen just to the synch folder. Currently (v2.0.0.17 19-Nov-08) this crashes Thunderbird (no idea why)
+
+content\overlay.js:    // TODO: Globalise synch messages
+
+content\overlay.js:        // TODO: Allow synch criteria other than ownership.
+
+content\overlay.js:            // TODO: Globalise
+
+content\overlay.js:                // TODO: make getUserInfo query asynch (somehow!);
+
+content\overlay.js:                // TODO: Really should test this.
+
+content\overlay.js:                // TODO: make getUserInfo query asynch (somehow!);
+
+content\overlay.js:                    // TODO: Make roles query asynch (somehow!)
+
+content\overlay.js:            // TODO: Security. SOQL injection possible?? Would probably only crash out, but worth checking.
+
+content\overlay.js:            // TODO: filter results of getUpdated by Ownership criteria (is there any point in doing it then, esp given it's causing pain elsewhere?)
+
+content\overlay.js:        // TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
+
+content\overlay.js:        // TODO: Synch across multiple address books.
+
+content\overlay.js:            //TODO: Should probably synch deletions here :-)
+
+content\overlay.js:            //TODO: Not relevant at this code point. But need to synch deletions in thunderbird to salesforce too.
+
+content\overlay.js:        // TODO: Fix up the time that we're setting the last synch to. Must set to the time we set in salesforce query, not time update ends.
+
+content\overlay.xul:  <!-- TODO: Globalise menu labels on message window overlay. -->
+
+----
+
+install NoUpdateUrl.rdf:    <!-- TODO: a proper homepage -->
+
+install NoUpdateUrl.rdf:    <!-- TODO: About page -->
+
+install NoUpdateUrl.rdf:    <!-- TODO: Better Icon -->
+
+
+
+install.rdf:    <!-- TODO: a proper homepage -->
+
+install.rdf:    <!-- TODO: About page -->
+
+install.rdf:    <!-- TODO: Better Icon -->
+
+install.rdf:    <!-- TODO: Need to host this in a more stable location than my svn repo -->
+
+----
+
+update.rdf:    <!-- TODO: Signature required? -->
