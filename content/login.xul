@@ -2,6 +2,8 @@
 <?xml-stylesheet href="chrome://griffin/skin/login.css" type="text/css"?>
 
 <!DOCTYPE window SYSTEM "chrome://griffin/locale/login.dtd">
+
+<!-- TODO: Beautify the login dialog -->
 <window id="gfn_login"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns:nc="http://home.netscape.com/NC-rdf#"

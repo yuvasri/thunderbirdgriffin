@@ -1174,6 +1174,7 @@ sforce.Connection.prototype.login = function (username, password) {
     var arg2 = new sforce.internal.Parameter("password", password, false);
     var result = this.invoke("login", [arg1, arg2], false, null);
     this.sessionId = result.sessionId;
+    this.serverUrl = result.serverUrl;
     return result;
 };
 

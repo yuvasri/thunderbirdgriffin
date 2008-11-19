@@ -23,12 +23,6 @@
     <menuitem id="griffinHelp" label="Griffin Help" oncommand="GriffinMessage.openURL('http://code.google.com/p/thunderbirdgriffin/wiki/UserGuide');"></menuitem>
   </menupopup>
   
-  <!-- TODO: Folder subsriptions - synchronise all messages that end up in a particular folder. -->
-  <!-- TODO: Contact subsriptions - synchronise all messages to / from a given contact. -->
-  <popup id="folderPaneContext">
-    <menuitem insertafter="folderPaneContext-sendUnsentMessages" id="gfn_FLDR_synch" label="Mark folder for synch"></menuitem>
-  </popup>
-  
   <popup id="threadPaneContext">
     <menuitem insertafter="threadPaneContext-mark" id="gfn_THRD_AddToSalesforce" label="Add to salesforce" oncommand="GriffinMessage.addSelectedMessages();"></menuitem>
   </popup>

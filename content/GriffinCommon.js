@@ -1,4 +1,4 @@
-﻿// TODO: Cache varous XPCOM classes used in this file? Performance?
+﻿// TODO: Cache varous XPCOM classes used in GriffinCommon? Performance?
 
 var GriffinCommon = {
     extensionId: "griffin@mpbsoftware.com",
@@ -34,53 +34,51 @@ var GriffinCommon = {
         return year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second + "Z";
     },
     
-    ensureLogin: function(){   
-        if(status != null){     
-            GriffinCommon.log("Logging in...", true, true, false);
-        }
-        if(sforce.connection.sessionId == null){
-            var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
-                                
-             // the host name of the password we are looking for
-            var queryString = sforce.connection.serverUrl;
-            // ask the password manager for an enumerator:
-            var e = passwordManager.enumerator;
-            // step through each password in the password manager until we find the one we want:
-            while (e.hasMoreElements()) {
-                try {
-                    // get an nsIPassword object out of the password manager.
-                    // This contains the actual password...
-                    var pass = e.getNext().QueryInterface(Components.interfaces.nsIPassword);
-                    if (pass.host == queryString) {
-                         // found it! (Hopefully!!)
-                         try{
-                            var loginResult = sforce.connection.login(pass.user, pass.password);
-                            sforce.connection.serverUrl = loginResult.serverUrl;      
-                         } catch (e) {
-                            // TODO: Globalise.
-                            GriffinCommon.log('Stored login for ' + queryString + ' failed with error ' + e, true, true, true);
-                         }
-                         break;
-                    }
-                } catch (ex) {
-                    continue;
+    getCredentialsForUrl: function(url){
+        var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
+        var e = passwordManager.enumerator;
+        // step through each password in the password manager until we find the one we want:
+        while (e.hasMoreElements()) {
+            try {
+                var pass = e.getNext().QueryInterface(Components.interfaces.nsIPassword);
+                if (pass.host == url) {
+                    return pass;
                 }
-            }  
-            // No password saved. Login using the dialog box.
+            } catch (ex) {
+                continue;
+            }
+        }
+        return null;
+    },
+    
+    // TODO: Login asynchronously
+    ensureLogin: function(){
+        GriffinCommon.log("Logging in...", true, true, true);
+        if(sforce.connection.sessionId == null){
+            var url = GriffinCommon.getPrefValue("serverUrl", "string");
+            sforce.connection.serverUrl = url;
+            var credentials = GriffinCommon.getCredentialsForUrl(url);
+            if(credentials != null){
+                try{
+                    var loginResult = sforce.connection.login(credentials.user, credentials.password);
+                } catch (e) {
+                // TODO: Globalise.
+                     GriffinCommon.log('Stored login for ' + url + ' failed with error ' + e, true, true, true);
+                }
+            }
+            // No password saved or login failed. Login using the dialog box.
             if(sforce.connection.sessionId == null){                
                 var dialog = window.openDialog('chrome://griffin/content/login.xul', '_blank', 'modal');
             }
         }
         // May have still not logged in (e.g. cancelled the login dialog).
-        var hasLoggedIn = sforce.connection.sessionId != null;                              
-        if(status != null){
-            // TODO: Globalise login status messages
-            if(hasLoggedIn){
-                GriffinCommon.log("Login successful...", true, true, false);
-            }
-            else{
-                GriffinCommon.log("Login failed. See Error Console for details.", true, true, false);                
-            }
+        var hasLoggedIn = sforce.connection.sessionId != null;    
+        // TODO: Globalise login status messages
+        if(hasLoggedIn){
+            GriffinCommon.log("Login successful...", true, true, false);
+        }
+        else{
+            GriffinCommon.log("Login failed. See Error Console for details.", true, true, false);                
         }
         return hasLoggedIn
     },
@@ -112,22 +110,6 @@ var GriffinCommon = {
         var storageService = Components.classes["@mozilla.org/storage/service;1"]
                         .getService(Components.interfaces.mozIStorageService);
         return storageService.openDatabase(file);
-    },
-    
-    getOptionVal: function(option){
-        var connection = GriffinCommon.getDbConnection();
-        var command = connection.createStatement("SELECT Value FROM Option WHERE Name = ?1");
-        try{
-            command.bindUTF8StringParameter(0, option);
-            if(command.executeStep() && !command.getIsNull(0)){
-            
-                return command.getUTF8String(0);
-            }      
-        }
-        finally {
-            command.reset();
-        }
-        return "";
     },
  
     log: function(msg, error, status, persist){       
@@ -177,6 +159,7 @@ var GriffinCommon = {
     },
     
     setPrefValue: function(pref, value, type){    
+        GriffinCommon.log("Updating pref " + pref + " to " + value, true, false, true);
         // Get the "extensions.griffin." branch
         var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService);
         prefs = prefs.getBranch("extensions.griffin.");
@@ -190,7 +173,7 @@ var GriffinCommon = {
         }
     },
     
-    // TODO: Perhaps this should be somewhere else? Called on both addMessage, and synchContact methods.
+    // TODO: Perhaps this should be somewhere else? Called on both addMessage, and synchContact methods. Some kind of OO class I imagine?
     getCardForContact: function(contact, fieldMaps){
         // TODO: Limit getCardForContact search so that we only get getBestMatch on relevant cards (ie ones that match on at least one field). Partially implemented, see commented out code.
         /*
@@ -245,7 +228,7 @@ var GriffinCommon = {
         return GriffinCommon.getBestMatch(fieldMaps, candidates, contact);
     },
     
-    // TODO: Perhaps this should be somewhere else? See getCardForContact
+    // TODO: Perhaps getBestMatch should be somewhere else? See getCardForContact
     getBestMatch: function(fieldMaps, possibleMatches, contact){
         var bestMatchValue = 0;
         var bestMatch = null;
@@ -262,10 +245,13 @@ var GriffinCommon = {
         else{
             GriffinCommon.log("No match found in getBestMatch function. Returning null.", true, false, false);
         } 
-        return bestMatch;
+        if(bestMatchValue > 50)
+            return bestMatch;
+        else 
+            return null;
     },
     
-    // TODO: Perhaps this should be somewhere else? See getCardForContact
+    // TODO: Perhaps getMatchStrength should be somewhere else? See getCardForContact
     getMatchStrength: function(fieldMaps, candidateCard, contact){
         var str = 0;
         for(var mapIdx = 0; mapIdx < fieldMaps.length; mapIdx++){

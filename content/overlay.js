@@ -1,6 +1,72 @@
 ﻿var GriffinMessage = { 
     synchCancelTimeout: false,
     synchCancel: null,
+    synchFolder: null,
+
+    gfn_folderListener: {
+        timeout: null,
+        addMessages: function(){
+            //GriffinCommon.log("gfn_folderListener.addMessages called.", true, false, true);
+            GriffinMessage.gfn_folderListener.timeout = null;
+            var enumerator = GriffinMessage.synchFolder.getMessages(msgWindow);
+            var messages = [];
+            while (enumerator.hasMoreElements()) {
+                var hdr = enumerator.getNext().QueryInterface(Components.interfaces.nsIMsgDBHdr);
+                messages.push(GriffinMessage.synchFolder.getUriForMsg(hdr));
+            }
+            // Add the messages with a callback to delete them from the folder.
+            GriffinMessage.addMessages(messages, GriffinMessage.gfn_folderListener.deleteMessages);
+        },
+        
+        deleteMessages: function(messages){
+            var theMessages = Components.classes["@mozilla.org/supports-array;1"].createInstance(Components.interfaces.nsISupportsArray);
+            for(var i = 0; i < messages.length; i++){
+                theMessages.AppendElement(messages[i].innerMessage);
+            }
+            GriffinMessage.synchFolder.deleteMessages(theMessages, msgWindow, true, false, null, false);
+        },
+        
+        OnItemIntPropertyChanged: function ( item , property ,oldValue , newValue ){        
+            try{
+                item.QueryInterface(Components.interfaces.nsIMsgFolder);
+            }
+            catch(e){
+                // Must have been a folder prop change to be interesting.
+                return;
+            }
+            if(property.toString() == "TotalMessages" && (newValue > oldValue) && item.URI == GriffinMessage.synchFolder.URI)
+            {
+                var timeout = GriffinCommon.getPrefValue("messageBatchingTimeout", "int");
+                // Use a timeout to batch requests to salesforce. Messages will only be sent after a short time with no activity.
+                if(GriffinMessage.gfn_folderListener.timeout != null)
+                    window.clearTimeout(GriffinMessage.gfn_folderListener.timeout);
+                GriffinMessage.gfn_folderListener.timeout = window.setTimeout("GriffinMessage.gfn_folderListener.addMessages();", timeout); 
+            }
+        }
+    },
+
+
+    ensureSalesforceSynchFolder: function(){
+        //TODO: Ensure a synch folder is set up at start time.
+        var accountManager = Components.classes["@mozilla.org/messenger/account-manager;1"].getService(Components.interfaces.nsIMsgAccountManager);
+        var folderName = GriffinCommon.getPrefValue("synchFolderName", "string");
+        var localFoldersRoot = accountManager.localFoldersServer.rootFolder;
+        try{
+            localFoldersRoot.createSubfolder (folderName, msgWindow);     
+        }
+        catch(err){
+            // It has almost certainly been created. In which case createSubfolder will chuck a wobbler, which we can ignore.
+        }
+        var synchFolder = localFoldersRoot.getChildNamed(folderName); 
+        
+        // Neccessary, not just a check!
+        synchFolder.QueryInterface(Components.interfaces.nsIMsgFolder);
+        //TODO: Listen just to the synch folder. Currently (v2.0.0.17 19-Nov-08) this crashes Thunderbird (no idea why)
+        //synchFolder.AddFolderListener(gfn_folderListener, Components.interfaces.nsIFolderListener.added); 
+        GriffinMessage.synchFolder = synchFolder;
+        var mailSession = Components.classes["@mozilla.org/messenger/services/session;1"].getService(Components.interfaces.nsIMsgMailSession);
+        mailSession.AddFolderListener(GriffinMessage.gfn_folderListener, Components.interfaces.nsIFolderListener.intPropertyChanged); 
+    },
 
     scheduleSynch: function(){
         if(GriffinMessage.synchCancel != null){
@@ -38,75 +104,11 @@
         timeoutFunc +=  "GriffinMessage.beginSynchContacts();";
         GriffinMessage.synchCancel = window.setTimeout(timeoutFunc, timeTillSynch);
     },
-    
-    gfn_folderListener: {
-        // Add \ Remove \ Event
-        OnItemAdded: function ( 
-        /*nsIRDFResource*/ parentItem , 
-        /*nsISupports*/ item ){
-            GriffinCommon.log("OnItemAdded parentItem: " + parentItem + " item: " + item);
-        },
-        OnItemRemoved: function ( 
-        /*nsIRDFResource*/ parentItem , 
-        /*nsISupports*/ item ){
-            GriffinCommon.log("OnItemAdded parentItem: " + parentItem + " item: " + item);
-        },        
-        OnItemEvent: function ( 
-        /*nsIMsgFolder*/ item , 
-        /*nsIAtom*/ event ){
-            GriffinCommon.log("OnItemAdded item: " + item + " event: " + event);
-        },
-        
-        // Property change
-        OnItemBoolPropertyChanged: function ( 
-        /*nsIRDFResource*/ item , 
-        /*nsIAtom*/ property , 
-        /*PRBool*/ oldValue , 
-        /*PRBool*/ newValue ){
-            GriffinCommon.log("OnItemBoolPropertyChanged item: " + item + " property: " + property + " oldValue: " + oldValue + " newValue: " + newValue);
-        }, 
-        OnItemIntPropertyChanged: function ( 
-        /*nsIRDFResource*/ item , 
-        /*nsIAtom*/ property ,
-        /*PRInt32*/ oldValue , 
-        /*PRInt32*/ newValue ){
-            GriffinCommon.log("OnItemIntPropertyChanged item: " + item + " property: " + property + " oldValue: " + oldValue + " newValue: " + newValue);
-        },
-        OnItemPropertyChanged: function ( 
-        /*nsIRDFResource*/ item , 
-        /*nsIAtom*/ property , 
-        /*char**/ oldValue , 
-        /*char**/ newValue ){
-            GriffinCommon.log("OnItemPropertyChanged item: " + item + " property: " + property + " oldValue: " + oldValue + " newValue: " + newValue);
-        },
-        OnItemPropertyFlagChanged: function ( 
-        /*nsIMsgDBHdr*/ item , 
-        /*nsIAtom*/ property , 
-        /*PRUint32*/ oldFlag , 
-        /*PRUint32*/ newFlag ){
-            GriffinCommon.log("OnItemPropertyFlagChanged item: " + item + " property: " + property + " oldFlag: " + oldFlag + " newFlag: " + newFlag);
-        },  
-        OnItemUnicharPropertyChanged: function ( 
-        /*nsIRDFResource*/ item , 
-        /*nsIAtom*/ property , 
-        /*PRUnichar**/ oldValue , 
-        /*PRUnichar**/ newValue ){
-            GriffinCommon.log("OnItemUnicharPropertyChanged item: " + item + " property: " + property + " oldValue: " + oldValue + " newValue: " + newValue);
-        },
-
-        QueryInterface : function(iid)
-        {
-          if (iid.equals(Components.interfaces.nsIFolderListener) )
-            return this;
-         
-          throw Components.results.NS_NOINTERFACE;
-        }
-    },
 
     onLoad: function(){
+        GriffinMessage.ensureSalesforceSynchFolder();
         GriffinMessage.scheduleSynch();
-        var mailSession = Components.classes["@mozilla.org/messenger/services/session;1"].getService(Components.interfaces.nsIMsgMailSession);
-        mailSession.AddFolderListener(GriffinMessage.gfn_folderListener, Components.interfaces.nsIFolderListener.all); 
+        
     },
 
     addSelectedMessages: function(){
@@ -114,12 +116,14 @@
         GriffinMessage.addMessages(messages);
     },
 
-    addMessages: function(messages){
+    addMessages: function(messages, callback){
+        GriffinCommon.log("Adding " + messages.length + " message(s) to salesforce.", true, true, true);
         if(!GriffinCommon.ensureLogin()){
             return;
         }        
         var taskMap = GriffinCommon.getFieldMap("Task");        
         var tasks = [];
+        var griffinMessages = [];
         for(var i = 0; i < messages.length; i++){
             var msg = new Griffin.Message(messages[i]);
             var task = new sforce.SObject("Task");            
@@ -127,9 +131,21 @@
                 var currFldMap = taskMap[currFldIdx];
                 task[currFldMap.sfdcField] = msg.getField(currFldMap.tbirdField);
             }
+            griffinMessages.push(msg);
             tasks.push(task);
         }
-        sforce.connection.create(tasks);
+        sforce.connection.create(tasks, {
+            onSuccess: function(result){
+                GriffinCommon.log("Successfully added messages!", true, true, true);
+                GriffinCommon.log("Griffin Status", false, true);
+                if(callback){
+                    callback(griffinMessages);
+                }
+            },
+            onFailure: function(err){
+                GriffinCommon.log("Failed to add messages. Messge was " + err, true, false, true);
+            }
+        });
     },
     
     openOptions: function(e){
@@ -298,10 +314,6 @@
             var sfdcFld = fieldMap[i].sfdcField;
             card[tbirdFld] = contact[sfdcFld];
         }
-    },
-    
-    getFolderByName: function(fldName){
-        return null;
     },
 
     // Taken from extensions.js loaded when the add on manager comes up.
