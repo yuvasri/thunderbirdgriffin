@@ -18,10 +18,7 @@
     <em:aboutURL>chrome://griffin/content/about.xul</em:aboutURL>
     <!-- TODO: Better Icon -->
     <em:iconURL>chrome://griffin/skin/mainicon.png</em:iconURL>
-    
-    <!-- TODO: Need to host this in a more stable location than my svn repo -->
-    <em:updateURL>http://thunderbirdgriffin.googlecode.com/svn/trunk/update.rdf</em:updateURL>
-    
+
     <!-- Thunderbird -->
     <em:targetApplication>
       <Description>
