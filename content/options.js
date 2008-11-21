@@ -1,4 +1,4 @@
-﻿// TODO: Options screen performs login twice, (tasks and contacts)
+// TODO: Options screen performs login twice, (tasks and contacts)
 // TODO: 
 
 var FieldInfo = function(prop, label, fieldId){

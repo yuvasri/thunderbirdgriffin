@@ -1,4 +1,4 @@
-﻿// TODO: Try to find a way to trick salesforce into tracking messages as per HTML emails sent within salesforce.
+// TODO: Try to find a way to trick salesforce into tracking messages as per HTML emails sent within salesforce.
 
 var Gfn_Compose = { 
 

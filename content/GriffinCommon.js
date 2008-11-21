@@ -1,4 +1,4 @@
-﻿// TODO: Cache varous XPCOM classes used in GriffinCommon? Performance?
+// TODO: Cache varous XPCOM classes used in GriffinCommon? Performance?
 
 var GriffinCommon = {
     extensionId: "griffin@mpbsoftware.com",
