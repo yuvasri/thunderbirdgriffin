@@ -1,4 +1,4 @@
-﻿var Griffin;
+var Griffin;
 if (!Griffin) {
     Griffin = {};
 }

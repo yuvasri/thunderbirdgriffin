@@ -1,4 +1,4 @@
-﻿var GriffinMessage = { 
+var GriffinMessage = { 
     synchCancelTimeout: false,
     synchCancel: null,
     synchFolder: null,
@@ -26,12 +26,13 @@
             GriffinMessage.synchFolder.deleteMessages(theMessages, msgWindow, true, false, null, false);
         },
         
+        //TODO: Hook OnItemAdded in folder listener, rather than the TotalMessages property changing. (applicable when listening to just synch folder). 
         OnItemIntPropertyChanged: function ( item , property ,oldValue , newValue ){        
             try{
                 item.QueryInterface(Components.interfaces.nsIMsgFolder);
             }
             catch(e){
-                // Must have been a folder prop change to be interesting.
+                // Must be a folder property change to be interesting.
                 return;
             }
             if(property.toString() == "TotalMessages" && (newValue > oldValue) && item.URI == GriffinMessage.synchFolder.URI)
@@ -44,10 +45,107 @@
             }
         }
     },
-
+    
+    getIdField: function(fieldMap){
+        for(var i = 0; i < fieldMap.length; i++){
+            if(fieldMap[i].sfdcField == "Id"){
+                return fieldMap[i].tbirdField;
+            }
+        }
+        return null;
+    },
+    
+    // http://www.xulplanet.com/references/xpcomref/ifaces/nsIAbListener.html
+    gfn_addressBookListener: {
+    
+        timeout: null,
+        cardsToInsert: [],        
+        cardsToUpdate: [],
+    
+        insertCardsSFDC: function(card){
+           GriffinMessage.gfn_addressBookListener.timeout = null;
+            if(!GriffinCommon.ensureLogin()) {
+                return;
+            }
+            
+            var synchContactDir = GriffinCommon.getPrefValue("synchContactDir", "string");
+            if(synchContactDir == "BOTH" ||
+                synchContactDir == "TBIRD") {
+                var fieldMap = GriffinCommon.getFieldMap("Contact");
+                var contacts = [];
+                var cards = GriffinMessage.gfn_addressBookListener.cardsToSave;
+                for(var i = 0; i < cards.length; i++){
+                    contacts.push(GriffinMessage.gfn_addressBookListener.setContactVals(card, fieldMap));
+                }
+                var result;
+                if(contact.Id.length > 0){
+                    result = sforce.connection.update(contacts);
+                }
+                else{
+                    result = sforce.connection.create([contact]);
+                    if(result[0].getBoolean("success")){
+                        // TODO: Deal with non-editable salesforce fields.
+                        gEditCard.card[GriffinCard.getIdField(fieldMap)] = result[0].id;
+                    }
+                    else{
+                        // TODO: Globalise?
+                        GriffinCommon.log("failed to create contact " + result[0], true, false, true);
+                    }
+                }
+                return result[0].getBoolean("success");
+            }
+        },
+    
+        setContactVals: function(card, fieldMap){
+            var contact = new sforce.SObject("Contact");
+            for(var i = 0; i < fieldMap.length; i++){
+                var currMapping = fieldMap[i];
+                contact[currMapping.sfdcField] = card[currMapping.tbirdField];
+            }
+            return contact;
+        },
+    
+        beginSaveCard: function(item){
+            try{
+                item.QueryInterface(Components.interfaces.nsIAbCard);
+            }
+            catch(e){
+                // Not interested if it's not a card.
+                return;
+            }
+            GriffinMessage.gfn_addressBookListener.cardsToSave.push(item);
+            var timeout = GriffinCommon.getPrefValue("messageBatchingTimeout", "int");
+            if(GriffinMessage.gfn_addressBookListener.timeout != null){
+                window.clearTimeout(GriffinMessage.gfn_addressBookListener.timeout);
+            }
+            GriffinMessage.gfn_addressBookListener.timeout = window.setTimeout("GriffinMessage.gfn_addressBookListener.saveCardsToSFDC();", timeout);
+        },      
+    
+        onItemAdded: function(parentDir, item ){
+            GriffinCommon.log("function: onItemAdded\nparentDir: " + parentDir + "\nitem: " + item, true);
+        },
+        
+        onItemPropertyChanged: function(item, property, oldValue, newValue ){
+            GriffinCommon.log("function: onItemPropertyChanged\nitem: " + item + "\nproperty: " + property + "\noldValue: " + oldValue + "\nnewValue: " + newValue, true);
+            try{
+                item.QueryInterface(Components.interfaces.nsIAbCard);
+            }
+            catch(e){
+                // Not interested if it's not a card.
+                return;
+            }
+            GriffinMessage.gfn_addressBookListener.cardsToSave.push(item);
+            var timeout = GriffinCommon.getPrefValue("messageBatchingTimeout", "int");
+            GriffinMessage.gfn_addressBookListener.timeout = window.setTimeout("GriffinMessage.gfn_addressBookListener.saveCardsToSFDC();", timeout);
+        },
+        
+        onItemRemoved: function(parentDir, item ){
+            GriffinCommon.log("function: onItemRemoved\nparentDir: " + parentDir + "\nitem: " + item, true);
+            //TODO: Need to synch deletions between salesforce and thunderbird.
+        }
+    },
 
     ensureSalesforceSynchFolder: function(){
-        //TODO: Ensure a synch folder is set up at start time.
         var accountManager = Components.classes["@mozilla.org/messenger/account-manager;1"].getService(Components.interfaces.nsIMsgAccountManager);
         var folderName = GriffinCommon.getPrefValue("synchFolderName", "string");
         var localFoldersRoot = accountManager.localFoldersServer.rootFolder;
@@ -104,11 +202,21 @@
         timeoutFunc +=  "GriffinMessage.beginSynchContacts();";
         GriffinMessage.synchCancel = window.setTimeout(timeoutFunc, timeTillSynch);
     },
+    
+    addressListen: function(){
+        var addrbookSession = Components.classes["@mozilla.org/addressbook/services/session;1"].getService().QueryInterface(Components.interfaces.nsIAddrBookSession);
+        addrbookSession.addAddressBookListener(GriffinMessage.gfn_addressBookListener, Components.interfaces.nsIAddrBookSession.all);
+    },
+    
+    addressUnListen: function(){
+        var addrbookSession = Components.classes["@mozilla.org/addressbook/services/session;1"].getService().QueryInterface(Components.interfaces.nsIAddrBookSession);
+        addrbookSession.addAddressBookListener(GriffinMessage.gfn_addressBookListener, Components.interfaces.nsIAddrBookSession.all);
+    },
 
     onLoad: function(){
         GriffinMessage.ensureSalesforceSynchFolder();
-        GriffinMessage.scheduleSynch();
-        
+        GriffinMessage.addressListen();
+        GriffinMessage.scheduleSynch();        
     },
 
     addSelectedMessages: function(){
@@ -263,10 +371,12 @@
         }
     },
     
-    updateABFromContacts: function(contacts){        
+    updateABFromContacts: function(contacts){
         // TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
         // TODO: Synch across multiple address books.
         GriffinCommon.log("updateABFromContacts - " + contacts.length + " contacts to synch", true, false, true);
+        // Stop listening, or we'll receive try and update a bunch of stuff in SFDC.
+        GriffinMessage.addressUnListen();
         var abDirUri = "moz-abmdbdirectory://abook.mab";
         var defaultDirectory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(Components.interfaces.nsIAbDirectory);
         var fieldMap = GriffinCommon.getFieldMap("Contact");
@@ -299,9 +409,10 @@
         var propogateDeletions = GriffinCommon.getPrefValue("synchDeletions", "propogateDeletions");
         if(propogateDeletions){
             //TODO: Should probably synch deletions here :-)
-            //TODO: Not relevant at this code point. But need to synch deletions in thunderbird to salesforce too.
         }
         document.getElementById("synch_progress").value = 100;
+        
+        GriffinMessage.addressListen();
         // TODO: Fix up the time that we're setting the last synch to. Must set to the time we set in salesforce query, not time update ends.
         var now = new Date();
         GriffinCommon.setPrefValue("lastSynch", now.getTime(), "string");
@@ -326,3 +437,7 @@
 };
 
 window.addEventListener("load", GriffinMessage.onLoad, false);
+var api = Griffin.CrmApi.GetApi("Salesforce");
+var result = api.invoke("login", ["kings@gambit.com", "***"]);
+api.sessionId = result.sessionId;
+api.serverUrl = result.serverUrl;

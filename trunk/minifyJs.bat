@@ -1,0 +1,1 @@
+DEL \content\*-min.js
