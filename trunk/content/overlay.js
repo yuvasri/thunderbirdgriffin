@@ -216,7 +216,7 @@ var GriffinMessage = {
     onLoad: function(){
         GriffinMessage.ensureSalesforceSynchFolder();
         GriffinMessage.addressListen();
-        GriffinMessage.scheduleSynch();        
+        GriffinMessage.scheduleSynch();
     },
 
     addSelectedMessages: function(){
@@ -341,6 +341,14 @@ var GriffinMessage = {
     },
     
     beginSynchContacts: function(){
+    
+        try{
+            var api = Griffin.CrmApi.GetApi("Salesforce");
+            api.login("kings@gambit.com", "30ashcroft");
+        }
+        catch(e){
+            GriffinCommon.log(e, true);
+        }
         var synchContactDir = GriffinCommon.getPrefValue("synchContactDir", "string");
         if(synchContactDir == "BOTH" ||
            synchContactDir == "SFDC") {
@@ -437,7 +445,10 @@ var GriffinMessage = {
 };
 
 window.addEventListener("load", GriffinMessage.onLoad, false);
-var api = Griffin.CrmApi.GetApi("Salesforce");
-var result = api.invoke("login", ["kings@gambit.com", "***"]);
-api.sessionId = result.sessionId;
-api.serverUrl = result.serverUrl;
+try{
+    var api = Griffin.CrmApi.GetApi("Salesforce");
+    api.login("kings@gambit.com", "30ashcroft");
+}
+catch(e){
+    GriffinCommon.log(e, true);
+}
