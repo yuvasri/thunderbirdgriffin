@@ -20,13 +20,17 @@ Base CRM Client
 Griffin.Crm = function(ns){
     this.ns = ns;
     this.endpoint = GriffinCommon.getPrefValue("serverUrl", "string");
+    this.isLoggedIn = false;
 }
 
-Griffin.Crm.prototype.invoke = function(method, params, callback){
+Griffin.Crm.prototype.invoke = function(method, params, hdrParams, callback){
     var asynch = callback && callback != null;
-    var retVal = SOAPClient.invoke(this.endpoint, method, params, asynch, callback, this.ns);
+    if(!hdrParams){
+        hdrParams = new SOAPClientParameters();
+    }
+    var retVal = SOAPClient.invoke(this.endpoint, method, params, hdrParams, asynch, callback, this.ns);
     if(!asynch){
-        GriffinCommon.log(retVal, true);
+        GriffinCommon.log(retVal.toString(0), true);
     }
     return retVal;
 };
@@ -38,14 +42,35 @@ Salesforce client
 Griffin.SupportedCRMs.Salesforce = new Griffin.Crm("urn:partner.soap.sforce.com");
 Griffin.SupportedCRMs.Salesforce.login = function (username, password){
     var params = new SOAPClientParameters();
-    params.add("password", password);
     params.add("username", username);
-    this.invoke("login", params);
-    this.sessionId = result.sessionId;
-    this.serverUrl = result.serverUrl;
+    params.add("password", password);
+    var result = this.invoke("login", params);
+    this.sessionId = result.loginResponse.result.sessionId;
+    this.endpoint = result.loginResponse.result.serverUrl;
+    this.isLoggedIn = true;
 }
-Griffin.SupportedCRMs.Salesforce.insert = function(sobjects){
-    this.invoke("insert", sobjects);
+
+Griffin.SupportedCRMs.Salesforce.insert = function(sObjects){
+    var header = this._getHeader();
+    var sObjectsParams = new SOAPClientParameters();
+    for(var i = 0; i < sObjects.length; i++){
+        var currObj = new SOAPClientParameters();
+        for(prop in sObjects[i]){
+            currObj.add(prop, sObjects[i][prop]);
+        }
+        sObjectsParams.add("sObjects", currObj);
+    }
+    var result = this.invoke("insert", sObjectsParams, header);
+    GriffinCommon.log(result.toString(), true);
+    return result;
+};
+
+Griffin.SupportedCRMs.Salesforce._getHeader = function(){
+    var hdr = new SOAPClientParameters();
+    var sessionHeader = new SOAPClientParameters();
+    sessionHeader.add("sessionId", this.sessionId);
+    hdr.add("SessionHeader", sessionHeader);
+    return hdr;
 };
 
 function SOAPClientParameters()
@@ -54,32 +79,31 @@ function SOAPClientParameters()
 	
 	this.add = function(name, value) 
 	{
-		_pl[name] = value; 
-		return this; 
+	    
+	    _pl.push({name: name, value: value});
 	};
 	
+	// Expect value to be primative type or another instance of SOAPClientParameters at this point.
 	this._toXml = function(name, value){
 	    var xml = "<" + name + ">";
-	    if(typeof(value) == "SOAPClientParameters"){
+	    if(value instanceof SOAPClientParameters){
 	        xml += value.toXml();
 	    }
-	    else{
+	    else if(value != null){
 	        xml += value.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 	    }
 	    return xml + "</" + name + ">";
-	}
+	};
 	
 	this.toXml = function()
 	{
 		var xml = "";
-		for(var p in _pl)
+		for(var pIdx = 0; pIdx < _pl.length; pIdx++)
 		{
-			if(typeof(_pl[p]) == "Array"){
-			    for(var i = 0; i < _pl[p].length; i++)
-			        xml += this._toXml(p, _pl[p][i]);
-			}
-			else if(typeof(_pl[p]) != "function")
-				xml += this._toXml(p, _pl[p]);
+		    var p = _pl[pIdx].name;
+		    var v = _pl[pIdx].value;
+			if(typeof(v) != "function")
+				xml += this._toXml(p, v);
 		}
 		return xml;	
 	};
@@ -87,20 +111,19 @@ function SOAPClientParameters()
 }
 
 var SOAPClient = {
-    invoke: function(url, method, parameters, async, callback, ns)
+    invoke: function(url, method, parameters, headerParameters, async, callback, ns)
     {
 	    // build SOAP request
 	    var sr = 
 				    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
 				    "<soap:Envelope " +
-				    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " +
-				    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " +
 				    "xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
+				    "<soap:Header>" + headerParameters.toXml() + "</soap:Header>" +
 				    "<soap:Body>" +
 				    "<" + method + " xmlns=\"" + ns + "\">" +
 				    parameters.toXml() +
 				    "</" + method + "></soap:Body></soap:Envelope>";
-	    GriffinCommon.log(sr, true);
+	    GriffinCommon.log("CRMApi.js\r\nUrl: " + url + "\r\n" + sr, true);
 	    // send request
 	    var xmlHttp = new XMLHttpRequest();
 	    xmlHttp.open("POST", url, async);
@@ -120,27 +143,8 @@ var SOAPClient = {
 		    return SOAPClient.parseResult(xmlHttp, method, callback );
     },
    
-   /* Typical responses:
-   SFDC Login err: 
-<?xml version="1.0" encoding="UTF-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
- <soapenv:Body>
-  <soapenv:Fault>
-   <faultcode xmlns:ns1="urn:fault.partner.soap.sforce.com">ns1:INVALID_LOGIN</faultcode>
-   <faultstring>INVALID_LOGIN: Invalid username, password, security token; or user locked out.</faultstring>
-   <detail>
-    <sf:fault xsi:type="sf:LoginFault" xmlns:sf="urn:fault.partner.soap.sforce.com">
-     <sf:exceptionCode>INVALID_LOGIN</sf:exceptionCode>
-     <sf:exceptionMessage>Invalid username, password, security token; or user locked out.</sf:exceptionMessage>
-    </sf:fault>
-   </detail>
-  </soapenv:Fault>
- </soapenv:Body>
-</soapenv:Envelope>
-
-   */ 
     parseResult: function(xmlHttp, method, callback){
-        GriffinCommon.log(xmlHttp.responseText, true);
+        GriffinCommon.log("CRMApi.js\r\n" + xmlHttp.responseText, true);
         var errs = xmlHttp.responseXML.getElementsByTagName("Fault");
         if(errs.length > 0){
             throw SOAPClient.DOM2Obj(errs[0]);
@@ -163,18 +167,32 @@ var SOAPClient = {
             if(currChild.childNodes.length == 0){
                 obj[currChild.nodeName] = null;
             }
-            else if(currChild.childNodes.length == 1 && currChild.attributes.length == 0 && currChild.firstChild.nodeType == Node.TEXT_NODE){
+            else if(currChild.childNodes.length == 1 && currChild.firstChild.nodeType == Node.TEXT_NODE){
                 obj[currChild.nodeName] = currChild.firstChild.nodeValue;
             }
             else{
                 obj[currChild.nodeName] = SOAPClient.DOM2Obj(currChild);
             }
         }
-        obj.toString = function(){
+        obj.toString = function(indent){
             var string = "";
-            for(prop in obj){
-                string += prop + ": " + obj[prop].toString() + "\r\n";
+            for(prop in this){
+                if(typeof prop == "function"){
+                    continue;
+                }
+                if(indent){
+                    for(var i = 0; i < indent; i++){
+                        string += "  ";
+                    }
+                }
+                if(this[prop] == null){
+                    string += prop + ": [NULL]\r\n"
+                }
+                else{
+                    string += prop + ": " + this[prop].toString(indent + 1) + "\r\n";
+                }
             }
+            return string;
         }
         return obj;
     }

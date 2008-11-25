@@ -601,6 +601,7 @@ sforce.Transport = function(url) {
         this.connection.setRequestHeader("Accept", "text/xml");
         this.connection.setRequestHeader("User-Agent", "SFAJAX 1.0");
         this.connection.send(envelope);
+        
         if (async && typeof(timeout) !== "undefined") {
             this.setTimeoutOn(holder, timeout);
         }
@@ -632,6 +633,8 @@ sforce.Transport = function(url) {
                     sforce.internal._connections[i] = null;
                     sforce.internal._connections.slice(i,1);
                     var success = holder.connection.status == 200;
+                    
+                    GriffinCommon.log("connection.js receive\r\n" + holder.connection.responseText);
                     if (sforce.debug.trace) {
                         sforce.debug.log("Response : status - " + holder.connection.status);
                         sforce.debug.logXml(holder.connection.responseText);
@@ -1548,6 +1551,7 @@ sforce.Connection.prototype._invoke = function(method, args, isArray, callback, 
         sforce.debug.logXml(writer.toString());
     }
     var transport = new sforce.SoapTransport();
+    GriffinCommon.log("connection.js\r\n" + writer.toString(), true);
     return transport.send(url, writer, isArray, callback);
 };
 
