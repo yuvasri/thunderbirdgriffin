@@ -228,7 +228,7 @@ var GriffinMessage = {
         GriffinCommon.log("Adding " + messages.length + " message(s) to salesforce.", true, true, true);
         if(!GriffinCommon.ensureLogin()){
             return;
-        }        
+        }
         var taskMap = GriffinCommon.getFieldMap("Task");        
         var tasks = [];
         var griffinMessages = [];
@@ -242,18 +242,19 @@ var GriffinMessage = {
             griffinMessages.push(msg);
             tasks.push(task);
         }
-        sforce.connection.create(tasks, {
-            onSuccess: function(result){
-                GriffinCommon.log("Successfully added messages!", true, true, true);
-                GriffinCommon.log("Griffin Status", false, true);
-                if(callback){
-                    callback(griffinMessages);
-                }
-            },
-            onFailure: function(err){
-                GriffinCommon.log("Failed to add messages. Messge was " + err, true, false, true);
-            }
-        });
+        api.insert(tasks);
+//        sforce.connection.create(tasks, {
+//            onSuccess: function(result){
+//                GriffinCommon.log("Successfully added messages!", true, true, true);
+//                GriffinCommon.log("Griffin Status", false, true);
+//                if(callback){
+//                    callback(griffinMessages);
+//                }
+//            },
+//            onFailure: function(err){
+//                GriffinCommon.log("Failed to add messages. Messge was " + err, true, false, true);
+//            }
+//        });
     },
     
     openOptions: function(e){
@@ -344,7 +345,7 @@ var GriffinMessage = {
     
         try{
             var api = Griffin.CrmApi.GetApi("Salesforce");
-            api.login("kings@gambit.com", "30ashcroft");
+            api.login("kings@gambit.com", "30ashcroftKOjOndLBtOAESrITkkcJ9O1Z");
         }
         catch(e){
             GriffinCommon.log(e, true);
@@ -447,7 +448,7 @@ var GriffinMessage = {
 window.addEventListener("load", GriffinMessage.onLoad, false);
 try{
     var api = Griffin.CrmApi.GetApi("Salesforce");
-    api.login("kings@gambit.com", "30ashcroft");
+    api.login("kings@gambit.com", "30ashcroftKOjOndLBtOAESrITkkcJ9O1Z");
 }
 catch(e){
     GriffinCommon.log(e, true);
