@@ -6,6 +6,9 @@ if (!Griffin){
 
 Griffin.CrmApi = {
     GetApi: function (crmIdent){
+        if(!crmIdent){
+            crmIdent = GriffinCommon.getPrefValue("crmSystem", "string");
+        }
         return Griffin.SupportedCRMs[crmIdent];
     }
 };
@@ -17,9 +20,10 @@ Griffin.SupportedCRMs = {};
 Base CRM Client
 */
 
-Griffin.Crm = function(ns){
+Griffin.Crm = function(ns, crmName){
     this.ns = ns;
-    this.endpoint = GriffinCommon.getPrefValue("serverUrl", "string");
+    this.crmName = crmName;
+    this.endpoint = GriffinCommon.getPrefValue(crmName + ".serverUrl", "string");
     this.isLoggedIn = false;
 }
 
@@ -35,11 +39,24 @@ Griffin.Crm.prototype.invoke = function(method, params, hdrParams, callback){
     return retVal;
 };
 
+Griffin.Crm.prototype.validateOwnerShip = function(ownership){
+    if(ownership == "ME" || ownership == "ALL"){
+        return true;
+    }
+    else if(this.crmName == "Zoho"){
+        // Cannot use "MYTEAM" in Zoho
+        return false;
+    }
+    else if(this.crmName == "Salesforce"){
+        return ownership == "MYTEAM";
+    }
+};
+
 /*
 Salesforce client
 */
 
-Griffin.SupportedCRMs.Salesforce = new Griffin.Crm("urn:partner.soap.sforce.com");
+Griffin.SupportedCRMs.Salesforce = new Griffin.Crm("urn:partner.soap.sforce.com", "Salesforce");
 Griffin.SupportedCRMs.Salesforce.login = function (username, password){
     var params = new SOAPClientParameters();
     params.add("username", username);
@@ -48,6 +65,17 @@ Griffin.SupportedCRMs.Salesforce.login = function (username, password){
     this.sessionId = result.loginResponse.result.sessionId;
     this.endpoint = result.loginResponse.result.serverUrl;
     this.isLoggedIn = true;
+    return true;
+}
+
+Griffin.SupportedCRMs.Salesforce.query(object, modifiedSince, ownership, fields){
+    if(!ownership){
+        this.ownership = "ME";
+    }
+    if(!this.validateOwnerShip()){
+        throw "Invalid ownership";
+    }
+    
 }
 
 Griffin.SupportedCRMs.Salesforce.insert = function(sObjects){
@@ -60,9 +88,9 @@ Griffin.SupportedCRMs.Salesforce.insert = function(sObjects){
         }
         sObjectsParams.add("sObjects", currObj);
     }
-    var result = this.invoke("insert", sObjectsParams, header);
+    var result = this.invoke("create", sObjectsParams, header);
     GriffinCommon.log(result.toString(), true);
-    return result;
+    return result.createResponse.result.success;
 };
 
 Griffin.SupportedCRMs.Salesforce._getHeader = function(){
@@ -73,37 +101,93 @@ Griffin.SupportedCRMs.Salesforce._getHeader = function(){
     return hdr;
 };
 
+/*
+Zoho Client
+*/
+Griffin.SupportedCRMs.Zoho = new Griffin.Crm(undefined, "Zoho");
+Griffin.SupportedCRMs.Zoho.login = function(username, apiKey){
+    this.username = encodeURIComponent(username);
+    this.apiKey = encodeURIComponent(apiKey);
+    this.isLoggedIn = true;
+    return true;
+}
+
+Griffin.SupportedCRMs.Zoho.insert = function(objects){
+    if(!objects || objects == null || objects.length == 0){
+        throw "Objects must be a valid array!";
+    }
+    if(!this.isLoggedIn){
+        throw "login call must have been performed prior to inserting records.";
+    }
+    var type = objects[0].type;
+    var prevEndpoint = this.endpoint;
+    this.endpoint = this.endpoint + type + "insertRecords?loginName=" + this.username + "&apikey=" + this.apiKey;
+    var soapParams = new SOAPClientParameters();
+    for(var i = 0; i < objects.length; i++){
+        var thisRow = new SOAPClientParameters();        
+        for(prop in objects[i]){
+            var addedObj = currObj.add("fieldlabel", objects[i][prop]);
+            addedObj["value"] = prop;
+        }
+        var row = soapParams.add("row", thisRow);
+        row["no"] = i;
+    }
+    try{
+        this.invoke(type, soapParams);
+    }
+    finally{
+        this.endpoint = prevEndpoint;
+    }
+    
+}
+
 function SOAPClientParameters()
 {
 	var _pl = new Array();
 	
-	this.add = function(name, value) 
+	this.add = function(name, innerText) 
 	{
-	    
-	    _pl.push({name: name, value: value});
+	    var newObj = {name: name, innerText: value};
+	    _pl.push(newObj);
+	    return newObj;
+	};
+	
+	this.cleanStringXml = function(string){
+	    return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 	};
 	
 	// Expect value to be primative type or another instance of SOAPClientParameters at this point.
-	this._toXml = function(name, value){
-	    var xml = "<" + name + ">";
+	this._toXml = function(obj, nsPrefix){
+	    var xml = "<";
+	    if(nsPrefix){
+	        xml += nsPrefix + ":";
+	    }
+	    for(prop in obj){
+	        if(prop != "name" && prop != "innerText"){
+	            xml += " " + prop + "=\"" + this.cleanStringXml(obj[prop]) + "\""
+	        }
+	    }
+	    xml += obj.name + ">";
 	    if(value instanceof SOAPClientParameters){
-	        xml += value.toXml();
+	        xml += obj.innerText.toXml(nsPrefix);
 	    }
 	    else if(value != null){
-	        xml += value.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+	        xml += this.cleanStringXml(obj.innerText.toString());
 	    }
-	    return xml + "</" + name + ">";
+	    xml += "</";
+	    if(nsPrefix){
+	        xml += nsPrefix + ":";
+	    }
+	    return xml + obj.name + ">";
 	};
 	
-	this.toXml = function()
+	this.toXml = function(nsPrefix)
 	{
 		var xml = "";
 		for(var pIdx = 0; pIdx < _pl.length; pIdx++)
 		{
-		    var p = _pl[pIdx].name;
-		    var v = _pl[pIdx].value;
-			if(typeof(v) != "function")
-				xml += this._toXml(p, v);
+			if(typeof(_pl[pIdx]) != "function")
+				xml += this._toXml(_pl[pIdx], nsPrefix);
 		}
 		return xml;	
 	};
@@ -114,15 +198,17 @@ var SOAPClient = {
     invoke: function(url, method, parameters, headerParameters, async, callback, ns)
     {
 	    // build SOAP request
+	    
 	    var sr = 
 				    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
 				    "<soap:Envelope " +
+				    (ns ? "xmlns:myns=\"" + ns + "\" " : "") +
 				    "xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
-				    "<soap:Header>" + headerParameters.toXml() + "</soap:Header>" +
+				    "<soap:Header>" + headerParameters.toXml(ns ? "myns" : undefinedv) + "</soap:Header>" +
 				    "<soap:Body>" +
-				    "<" + method + " xmlns=\"" + ns + "\">" +
-				    parameters.toXml() +
-				    "</" + method + "></soap:Body></soap:Envelope>";
+				    "<myns:" + method + ">" +
+				    parameters.toXml(ns ? "myns" : undefined) +
+				    "</myns:" + method + "></soap:Body></soap:Envelope>";
 	    GriffinCommon.log("CRMApi.js\r\nUrl: " + url + "\r\n" + sr, true);
 	    // send request
 	    var xmlHttp = new XMLHttpRequest();

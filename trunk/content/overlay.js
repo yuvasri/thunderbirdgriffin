@@ -243,18 +243,18 @@ var GriffinMessage = {
             tasks.push(task);
         }
         api.insert(tasks);
-//        sforce.connection.create(tasks, {
-//            onSuccess: function(result){
-//                GriffinCommon.log("Successfully added messages!", true, true, true);
-//                GriffinCommon.log("Griffin Status", false, true);
-//                if(callback){
-//                    callback(griffinMessages);
-//                }
-//            },
-//            onFailure: function(err){
-//                GriffinCommon.log("Failed to add messages. Messge was " + err, true, false, true);
-//            }
-//        });
+        sforce.connection.create(tasks, {
+            onSuccess: function(result){
+                GriffinCommon.log("Successfully added messages!", true, true, true);
+                GriffinCommon.log("Griffin Status", false, true);
+                if(callback){
+                    callback(griffinMessages);
+                }
+            },
+            onFailure: function(err){
+                GriffinCommon.log("Failed to add messages. Messge was " + err, true, false, true);
+            }
+        });
     },
     
     openOptions: function(e){
@@ -268,7 +268,7 @@ var GriffinMessage = {
         var millisPerDay = 24 * 60 * millisPerMinute;
         // TODO: Allow synch criteria other than ownership.
         var ownershipLimited = GriffinCommon.getPrefValue("synchContactOwnedBy", "string");
-        
+        GriffinCommon.api.
         if((now.getTime() - lastUpdateDate.getTime()) > (30 * millisPerDay)){
             // TODO: Globalise
             GriffinCommon.log("Synchronising contacts (SOQL)...", true, true, false);
@@ -446,10 +446,3 @@ var GriffinMessage = {
 };
 
 window.addEventListener("load", GriffinMessage.onLoad, false);
-try{
-    var api = Griffin.CrmApi.GetApi("Salesforce");
-    api.login("kings@gambit.com", "30ashcroftKOjOndLBtOAESrITkkcJ9O1Z");
-}
-catch(e){
-    GriffinCommon.log(e, true);
-}
