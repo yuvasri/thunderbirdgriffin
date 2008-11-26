@@ -57,13 +57,13 @@
   <ItemGroup>
     <None Include="chrome.manifest" />
     <None Include="content\about.xul" />
-    <None Include="content\composeOverlay.xul" />
     <None Include="content\CRMApi\salesforce.wsdl" />
     <None Include="content\login.xul" />
     <None Include="content\options.xul" />
     <None Include="content\overlay.xul" />
     <None Include="griffin.sqlite" />
     <None Include="griffin.xpi" />
+    <None Include="install NoUpdateUrl.rdf" />
     <None Include="install.rdf" />
     <None Include="locale\en-US\about.dtd" />
     <None Include="locale\en-US\cardOverlay.dtd" />
@@ -76,7 +76,6 @@
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="content\composeOverlay.js" />
     <Content Include="content\connection.js" />
     <Content Include="content\CRMApi\CRMApi.js" />
     <Content Include="content\CRMApi\soapclient.js" />

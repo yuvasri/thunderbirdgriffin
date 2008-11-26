@@ -4,7 +4,8 @@ var GriffinCommon = {
     extensionId: "griffin@mpbsoftware.com",
     databasefile: "griffin.sqlite",   
     logFile: "griffin.log",
-    
+    api: Griffin.CrmApi.GetApi("Salesforce");
+
     getFirstOpener: function(){
         var last;
         var opener = window.self;
@@ -53,16 +54,18 @@ var GriffinCommon = {
     
     // TODO: Login asynchronously
     ensureLogin: function(){
+        if(GriffinCommon.api.isLoggedIn){
+            return;
+        }
         GriffinCommon.log("Logging in...", true, true, true);
         if(sforce.connection.sessionId == null){
-            var url = GriffinCommon.getPrefValue("serverUrl", "string");
             sforce.connection.serverUrl = url;
             var credentials = GriffinCommon.getCredentialsForUrl(url);
             if(credentials != null){
                 try{
                     var loginResult = sforce.connection.login(credentials.user, credentials.password);
                 } catch (e) {
-                // TODO: Globalise.
+                    // TODO: Globalise.
                      GriffinCommon.log('Stored login for ' + url + ' failed with error ' + e, true, true, true);
                 }
             }
@@ -72,15 +75,14 @@ var GriffinCommon = {
             }
         }
         // May have still not logged in (e.g. cancelled the login dialog).
-        var hasLoggedIn = sforce.connection.sessionId != null;    
         // TODO: Globalise login status messages
-        if(hasLoggedIn){
+        if(GriffinCommon.api.isLoggedIn){
             GriffinCommon.log("Login successful...", true, true, false);
         }
         else{
             GriffinCommon.log("Login failed. See Error Console for details.", true, true, false);                
         }
-        return hasLoggedIn
+        return GriffinCommon.api.isLoggedIn
     },
     
     getFieldMap: function(obj){    
