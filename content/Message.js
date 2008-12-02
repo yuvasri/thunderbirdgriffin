@@ -37,7 +37,7 @@ Griffin.Message.prototype.getBody = function(){
             content = content + scriptInputStream.read(512);
         }
     } catch (ex) {
-        GriffinCommon.log("error while getting message content: " + ex, true, false, true)
+        Griffin.Logger.log("error while getting message content: " + ex, true, false, true)
     }
     return content;
 };

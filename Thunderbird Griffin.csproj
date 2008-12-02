@@ -80,11 +80,13 @@
     <Content Include="content\CRMApi\CRMApi.js" />
     <Content Include="content\CRMApi\soapclient.js" />
     <Content Include="content\FieldMap.js" />
+    <Content Include="content\Log.js" />
     <Content Include="content\login.js" />
     <Content Include="content\Message.js" />
     <Content Include="content\options.js" />
     <Content Include="content\overlay.js" />
     <Content Include="content\GriffinCommon.js" />
+    <Content Include="content\Prefs.js" />
     <Content Include="defaults\preferences\defaultprefs.js" />
     <Content Include="skin\about.css" />
     <Content Include="skin\ajax-loader.gif" />

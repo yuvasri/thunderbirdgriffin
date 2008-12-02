@@ -13,9 +13,12 @@
         persist="width height screenX screenY"
         ondialogaccept="return GriffinOptions.savePrefs();">
 
-  <script type="application/x-javascript" src="chrome://griffin/content/options.js"></script>
-  <script type="application/x-javascript" src="chrome://griffin/content/GriffinCommon.js"></script>
-  <script type="application/x-javascript" src="chrome://messenger/content/mailWindow.js"></script>
+  <script src="chrome://griffin/content/options.js" type="application/x-javascript" ></script>
+  <script src="chrome://griffin/content/Prefs.js" type="text/javascript"></script>
+  <script src="chrome://griffin/content/Log.js" type="text/javascript"></script>
+  <script src="chrome://griffin/content/CRMApi/CRMApi.js" type="text/javascript"></script>
+  <script src="chrome://griffin/content/GriffinCommon.js" type="application/x-javascript" ></script>
+  <script src="chrome://messenger/content/mailWindow.js" type="application/x-javascript" ></script>
 
   <tabbox  flex="1">
     <stringbundle id="bundle_options" src="chrome://griffin/locale/options.properties"></stringbundle>
@@ -30,6 +33,12 @@
         <vbox flex="1">
           <groupbox>
             <caption label="&general.login;"></caption>
+            <menulist id="mlSelectedCRM">
+              <menupopup id="mpSelectedCrm">
+                <menuitem id="miCrmSalesforce" label="Salesforce" value="Salesforce"/>
+                <menuitem id="miCrmZoho" label="Zoho" value="Zoho"/>
+              </menupopup>
+            </menulist>
             <hbox>
               <label>&general.username;</label>
               <spacer flex="1"></spacer>

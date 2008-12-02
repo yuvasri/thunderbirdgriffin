@@ -7,7 +7,45 @@ var FieldInfo = function(prop, label, fieldId){
     this.label = label == null ? prop : label;
 }
 
-var GriffinOptions = {
+var GriffinOptions = {    
+    onLoad: function() {
+        try{
+            // try to log in. if unsuccessful give up. avoids attempts to log in from two panels at once.
+            GriffinCommon.ensureLogin();
+            GriffinOptions.initGeneralPanel();
+            GriffinOptions.initContactPanel();
+            GriffinOptions.initTaskPanel();
+        } catch (e) {
+            Griffin.Logger.log(e, true, false, true);
+        }
+    }, 
+    
+    initGeneralPanel: function(){
+        var url = Griffin.Prefs.getPrefValue("serverUrl", "string");
+        var credentials = GriffinCommon.getCredentialsForUrl(url);
+        document.getElementById("serverUrl").value = url;
+        if(credentials != null){
+            document.getElementById("username").value = credentials.user;
+            document.getElementById("password").value = credentials.password;
+            document.getElementById("rememberMe").checked = true;
+        }
+        document.getElementById("miCrm" + Griffin.Prefs.getPrefValue("crmSystem", "string")).setAttribute("selected", "true");
+    },
+            
+    initContactPanel: function(){
+    
+        // Contact field mapping
+        GriffinOptions.startAppendFieldMap("Contact", "cnctMapping");
+        // Other contact options
+        document.getElementById("synchDeleted").checked = Griffin.Prefs.getPrefValue("propogateDeletions", "bool");
+        document.getElementById("synchDir").selectedItem = document.getElementById("synchDir_" + Griffin.Prefs.getPrefValue("synchContactDir", "string"));
+        document.getElementById("synchOwn").selectedItem = document.getElementById("synchOwn_" + Griffin.Prefs.getPrefValue("synchContactOwnedBy", "string"));
+        document.getElementById("synchFreq").value = Griffin.Prefs.getPrefValue("synchContactFrequency", "int");
+    },   
+    
+    initTaskPanel: function(){
+        GriffinOptions.startAppendFieldMap("Task", "taskMapping");
+    },
 
     loginClick: function(){        
         var username = document.getElementById("username").value;
@@ -15,8 +53,8 @@ var GriffinOptions = {
         var url = document.getElementById("serverUrl").value;
         try{
             var result = sforce.connection.login(username, password);
-            GriffinCommon.log("Log in complete.");
-            GriffinCommon.setPrefValue("serverUrl", url, "string");
+            Griffin.Logger.log("Log in complete.");
+            Griffin.Prefs.setPrefValue("serverUrl", url, "string");
             if(document.getElementById("rememberMe").checked){
                 // TODO: Password manager - do we need to remove current login for this url before adding a new one?
                 var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
@@ -24,7 +62,7 @@ var GriffinOptions = {
             }
         }
         catch(err){
-            GriffinCommon.log("Login failed for user " + username + " at Url " + url + " with error " + err, true, false, true);
+            Griffin.Logger.log("Login failed for user " + username + " at Url " + url + " with error " + err, true, false, true);
         }
     },
     
@@ -45,7 +83,7 @@ var GriffinOptions = {
                 catch(e)
                 {
                     // TODO: Globalise
-                    GriffinCommon.log("Failed to get string for label " + dbLabel + " with error " + e, true, false, true);
+                    Griffin.Logger.log("Failed to get string for label " + dbLabel + " with error " + e, true, false, true);
                 }
                 props.push(new FieldInfo(field, label, fieldId));
             }
@@ -83,7 +121,7 @@ var GriffinOptions = {
                 GriffinOptions["fieldsDrop_" + obj] = menulist;
             },
             onFailure: function(e){
-                GriffinCommon.log(e, true, false, true);
+                Griffin.Logger.log(e, true, false, true);
                 GriffinOptions["fieldsDrop_" + obj] = document.createElement("textbox");
             }
         });
@@ -104,20 +142,9 @@ var GriffinOptions = {
             }
         }
     },
-        
-    initContactPanel: function(){
-    
-        // Contact field mapping
-        GriffinOptions.startAppendFieldMap("Contact", "cnctMapping");
-        // Other contact options
-        document.getElementById("synchDeleted").checked = GriffinCommon.getPrefValue("propogateDeletions", "bool");
-        document.getElementById("synchDir").selectedItem = document.getElementById("synchDir_" + GriffinCommon.getPrefValue("synchContactDir", "string"));
-        document.getElementById("synchOwn").selectedItem = document.getElementById("synchOwn_" + GriffinCommon.getPrefValue("synchContactOwnedBy", "string"));
-        document.getElementById("synchFreq").value = GriffinCommon.getPrefValue("synchContactFrequency", "int");
-    },
     
     resetLastSynch: function(){
-        GriffinCommon.setPrefValue("lastSynch", "100", "string");
+        Griffin.Prefs.setPrefValue("lastSynch", "100", "string");
         alert("Next contact synchronisation will be full!");
     },
     
@@ -234,43 +261,17 @@ var GriffinOptions = {
         GriffinOptions.appendFieldMap(obj, id);
     },
     
-    initTaskPanel: function(){
-        GriffinOptions.startAppendFieldMap("Task", "taskMapping");
-    },
-    
-    initGeneralPanel: function(){
-        var url = GriffinCommon.getPrefValue("serverUrl", "string");
-        var credentials = GriffinCommon.getCredentialsForUrl(url);
-        document.getElementById("serverUrl").value = url;
-        if(credentials != null){
-            document.getElementById("username").value = credentials.user;
-            document.getElementById("password").value = credentials.password;
-            document.getElementById("rememberMe").checked = true;
-        }
-    },
-    
-    onLoad: function() {
-        try{
-            // try to log in. if unsuccessful give up. avoids attempts to log in from two panels at once.
-            GriffinCommon.ensureLogin();
-            GriffinOptions.initGeneralPanel();
-            GriffinOptions.initContactPanel();
-            GriffinOptions.initTaskPanel();
-        } catch (e) {
-            GriffinCommon.log(e, true, false, true);
-        }
-    },
-    
     savePrefs: function(){
         if(! GriffinOptions.validate()){
             return false;
         }
         GriffinOptions.updateFieldMap("Contact");
         GriffinOptions.updateFieldMap("Task");
-        GriffinCommon.setPrefValue("propogateDeletions", document.getElementById("synchDeleted").checked, "bool");
-        GriffinCommon.setPrefValue("synchContactDir", document.getElementById("synchDir").selectedItem.value, "string");
-        GriffinCommon.setPrefValue("synchContactOwnedBy", document.getElementById("synchOwn").selectedItem.value, "string");
-        GriffinCommon.setPrefValue("synchContactFrequency", document.getElementById("synchFreq").value, "int");
+        Griffin.Prefs.setPrefValue("propogateDeletions", document.getElementById("synchDeleted").checked, "bool");
+        Griffin.Prefs.setPrefValue("synchContactDir", document.getElementById("synchDir").selectedItem.value, "string");
+        Griffin.Prefs.setPrefValue("synchContactOwnedBy", document.getElementById("synchOwn").selectedItem.value, "string");
+        Griffin.Prefs.setPrefValue("synchContactFrequency", document.getElementById("synchFreq").value, "int");
+        Griffin.Prefs.setPrefValue("crmSystem", document.getElementById("mlSelectedCRM").selectedItem.value, "string");
         // We may have changed the frequency, so reschedule the synchronisation on the main page.
         GriffinCommon.getFirstOpener().GriffinMessage.scheduleSynch();
         // Now update database field mappings.

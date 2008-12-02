@@ -1,20 +1,17 @@
-﻿GriffinCommon.log("Loading api.", true);
-
-if (!Griffin){
+﻿if (!Griffin){
     var Griffin = {};
 }
 
 Griffin.CrmApi = {
     GetApi: function (crmIdent){
         if(!crmIdent){
-            crmIdent = GriffinCommon.getPrefValue("crmSystem", "string");
+            crmIdent = Griffin.Prefs.getPrefValue("crmSystem", "string");
         }
         return Griffin.SupportedCRMs[crmIdent];
     }
 };
 
 Griffin.SupportedCRMs = {};
-
 
 /*
 Base CRM Client
@@ -23,7 +20,7 @@ Base CRM Client
 Griffin.Crm = function(ns, crmName){
     this.ns = ns;
     this.crmName = crmName;
-    this.endpoint = GriffinCommon.getPrefValue(crmName + ".serverUrl", "string");
+    this.endpoint = Griffin.Prefs.getPrefValue(crmName + ".serverUrl", "string");
     this.isLoggedIn = false;
 }
 
@@ -34,7 +31,7 @@ Griffin.Crm.prototype.invoke = function(method, params, hdrParams, callback){
     }
     var retVal = SOAPClient.invoke(this.endpoint, method, params, hdrParams, asynch, callback, this.ns);
     if(!asynch){
-        GriffinCommon.log(retVal.toString(0), true);
+        Griffin.Logger.log(retVal.toString(0), true);
     }
     return retVal;
 };
@@ -66,9 +63,9 @@ Griffin.SupportedCRMs.Salesforce.login = function (username, password){
     this.endpoint = result.loginResponse.result.serverUrl;
     this.isLoggedIn = true;
     return true;
-}
+};
 
-Griffin.SupportedCRMs.Salesforce.query(object, modifiedSince, ownership, fields){
+Griffin.SupportedCRMs.Salesforce.query = function(object, modifiedSince, ownership, fields){
     if(!ownership){
         this.ownership = "ME";
     }
@@ -76,7 +73,7 @@ Griffin.SupportedCRMs.Salesforce.query(object, modifiedSince, ownership, fields)
         throw "Invalid ownership";
     }
     
-}
+};
 
 Griffin.SupportedCRMs.Salesforce.insert = function(sObjects){
     var header = this._getHeader();
@@ -89,7 +86,7 @@ Griffin.SupportedCRMs.Salesforce.insert = function(sObjects){
         sObjectsParams.add("sObjects", currObj);
     }
     var result = this.invoke("create", sObjectsParams, header);
-    GriffinCommon.log(result.toString(), true);
+    Griffin.Logger.log(result.toString(), true);
     return result.createResponse.result.success;
 };
 
@@ -147,7 +144,7 @@ function SOAPClientParameters()
 	
 	this.add = function(name, innerText) 
 	{
-	    var newObj = {name: name, innerText: value};
+	    var newObj = {name: name, innerText: innerText};
 	    _pl.push(newObj);
 	    return newObj;
 	};
@@ -168,10 +165,10 @@ function SOAPClientParameters()
 	        }
 	    }
 	    xml += obj.name + ">";
-	    if(value instanceof SOAPClientParameters){
+	    if(obj instanceof SOAPClientParameters){
 	        xml += obj.innerText.toXml(nsPrefix);
 	    }
-	    else if(value != null){
+	    else if(obj != null){
 	        xml += this.cleanStringXml(obj.innerText.toString());
 	    }
 	    xml += "</";
@@ -209,7 +206,7 @@ var SOAPClient = {
 				    "<myns:" + method + ">" +
 				    parameters.toXml(ns ? "myns" : undefined) +
 				    "</myns:" + method + "></soap:Body></soap:Envelope>";
-	    GriffinCommon.log("CRMApi.js\r\nUrl: " + url + "\r\n" + sr, true);
+	    Griffin.Logger.log("CRMApi.js\r\nUrl: " + url + "\r\n" + sr, true);
 	    // send request
 	    var xmlHttp = new XMLHttpRequest();
 	    xmlHttp.open("POST", url, async);
@@ -230,7 +227,7 @@ var SOAPClient = {
     },
    
     parseResult: function(xmlHttp, method, callback){
-        GriffinCommon.log("CRMApi.js\r\n" + xmlHttp.responseText, true);
+        Griffin.Logger.log("CRMApi.js\r\n" + xmlHttp.responseText, true);
         var errs = xmlHttp.responseXML.getElementsByTagName("Fault");
         if(errs.length > 0){
             throw SOAPClient.DOM2Obj(errs[0]);
