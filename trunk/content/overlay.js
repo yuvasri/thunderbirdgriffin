@@ -6,7 +6,7 @@ var GriffinMessage = {
     gfn_folderListener: {
         timeout: null,
         addMessages: function(){
-            //GriffinCommon.log("gfn_folderListener.addMessages called.", true, false, true);
+            //Griffin.Logger.log("gfn_folderListener.addMessages called.", true, false, true);
             GriffinMessage.gfn_folderListener.timeout = null;
             var enumerator = GriffinMessage.synchFolder.getMessages(msgWindow);
             var messages = [];
@@ -37,7 +37,7 @@ var GriffinMessage = {
             }
             if(property.toString() == "TotalMessages" && (newValue > oldValue) && item.URI == GriffinMessage.synchFolder.URI)
             {
-                var timeout = GriffinCommon.getPrefValue("messageBatchingTimeout", "int");
+                var timeout = Griffin.Prefs.getPrefValue("messageBatchingTimeout", "int");
                 // Use a timeout to batch requests to salesforce. Messages will only be sent after a short time with no activity.
                 if(GriffinMessage.gfn_folderListener.timeout != null)
                     window.clearTimeout(GriffinMessage.gfn_folderListener.timeout);
@@ -68,7 +68,7 @@ var GriffinMessage = {
                 return;
             }
             
-            var synchContactDir = GriffinCommon.getPrefValue("synchContactDir", "string");
+            var synchContactDir = Griffin.Prefs.getPrefValue("synchContactDir", "string");
             if(synchContactDir == "BOTH" ||
                 synchContactDir == "TBIRD") {
                 var fieldMap = GriffinCommon.getFieldMap("Contact");
@@ -89,7 +89,7 @@ var GriffinMessage = {
                     }
                     else{
                         // TODO: Globalise?
-                        GriffinCommon.log("failed to create contact " + result[0], true, false, true);
+                        Griffin.Logger.log("failed to create contact " + result[0], true, false, true);
                     }
                 }
                 return result[0].getBoolean("success");
@@ -114,7 +114,7 @@ var GriffinMessage = {
                 return;
             }
             GriffinMessage.gfn_addressBookListener.cardsToSave.push(item);
-            var timeout = GriffinCommon.getPrefValue("messageBatchingTimeout", "int");
+            var timeout = Griffin.Prefs.getPrefValue("messageBatchingTimeout", "int");
             if(GriffinMessage.gfn_addressBookListener.timeout != null){
                 window.clearTimeout(GriffinMessage.gfn_addressBookListener.timeout);
             }
@@ -122,11 +122,11 @@ var GriffinMessage = {
         },      
     
         onItemAdded: function(parentDir, item ){
-            GriffinCommon.log("function: onItemAdded\nparentDir: " + parentDir + "\nitem: " + item, true);
+            Griffin.Logger.log("function: onItemAdded\nparentDir: " + parentDir + "\nitem: " + item, true);
         },
         
         onItemPropertyChanged: function(item, property, oldValue, newValue ){
-            GriffinCommon.log("function: onItemPropertyChanged\nitem: " + item + "\nproperty: " + property + "\noldValue: " + oldValue + "\nnewValue: " + newValue, true);
+            Griffin.Logger.log("function: onItemPropertyChanged\nitem: " + item + "\nproperty: " + property + "\noldValue: " + oldValue + "\nnewValue: " + newValue, true);
             try{
                 item.QueryInterface(Components.interfaces.nsIAbCard);
             }
@@ -135,19 +135,19 @@ var GriffinMessage = {
                 return;
             }
             GriffinMessage.gfn_addressBookListener.cardsToSave.push(item);
-            var timeout = GriffinCommon.getPrefValue("messageBatchingTimeout", "int");
+            var timeout = Griffin.Prefs.getPrefValue("messageBatchingTimeout", "int");
             GriffinMessage.gfn_addressBookListener.timeout = window.setTimeout("GriffinMessage.gfn_addressBookListener.saveCardsToSFDC();", timeout);
         },
         
         onItemRemoved: function(parentDir, item ){
-            GriffinCommon.log("function: onItemRemoved\nparentDir: " + parentDir + "\nitem: " + item, true);
+            Griffin.Logger.log("function: onItemRemoved\nparentDir: " + parentDir + "\nitem: " + item, true);
             //TODO: Need to synch deletions between salesforce and thunderbird.
         }
     },
 
     ensureSalesforceSynchFolder: function(){
         var accountManager = Components.classes["@mozilla.org/messenger/account-manager;1"].getService(Components.interfaces.nsIMsgAccountManager);
-        var folderName = GriffinCommon.getPrefValue("synchFolderName", "string");
+        var folderName = Griffin.Prefs.getPrefValue("synchFolderName", "string");
         var localFoldersRoot = accountManager.localFoldersServer.rootFolder;
         try{
             localFoldersRoot.createSubfolder (folderName, msgWindow);     
@@ -176,20 +176,20 @@ var GriffinMessage = {
             }
         }
         // Calculate when the first synch should happen.
-        var freq = Number(GriffinCommon.getPrefValue("synchContactFrequency", "int"));
+        var freq = Number(Griffin.Prefs.getPrefValue("synchContactFrequency", "int"));
         if(freq == 0){
-            GriffinCommon.log("No synch set-up");
+            Griffin.Logger.log("No synch set-up");
             // No schedule.
             return;
         }
         var freqMillis = freq * 60 * 1000;
-        var lastSynchTicks = Number(GriffinCommon.getPrefValue("lastSynch", "string"));
+        var lastSynchTicks = Number(Griffin.Prefs.getPrefValue("lastSynch", "string"));
         var now = new Date();
         var timeTillSynch = lastSynchTicks + freqMillis - now.getTime();
         if(timeTillSynch < 0){
             timeTillSynch = 0;
         }
-        GriffinCommon.log("timeTillSynch: " + timeTillSynch, true, false, true);
+        Griffin.Logger.log("timeTillSynch: " + timeTillSynch, true, false, true);
         // When the first synch comes around we want to 
         // a) Synch (obviously)
         // b) Schedule the synch to run as often as set in the prefs.
@@ -225,7 +225,7 @@ var GriffinMessage = {
     },
 
     addMessages: function(messages, callback){
-        GriffinCommon.log("Adding " + messages.length + " message(s) to salesforce.", true, true, true);
+        Griffin.Logger.log("Adding " + messages.length + " message(s) to salesforce.", true, true, true);
         if(!GriffinCommon.ensureLogin()){
             return;
         }
@@ -242,19 +242,21 @@ var GriffinMessage = {
             griffinMessages.push(msg);
             tasks.push(task);
         }
-        api.insert(tasks);
+        GriffinCommon.api.insert(tasks);
+        /*
         sforce.connection.create(tasks, {
             onSuccess: function(result){
-                GriffinCommon.log("Successfully added messages!", true, true, true);
-                GriffinCommon.log("Griffin Status", false, true);
+                Griffin.Logger.log("Successfully added messages!", true, true, true);
+                Griffin.Logger.log("Griffin Status", false, true);
                 if(callback){
                     callback(griffinMessages);
                 }
             },
             onFailure: function(err){
-                GriffinCommon.log("Failed to add messages. Messge was " + err, true, false, true);
+                Griffin.Logger.log("Failed to add messages. Messge was " + err, true, false, true);
             }
         });
+        */
     },
     
     openOptions: function(e){
@@ -267,23 +269,22 @@ var GriffinMessage = {
         var millisPerMinute = 60 * 1000;
         var millisPerDay = 24 * 60 * millisPerMinute;
         // TODO: Allow synch criteria other than ownership.
-        var ownershipLimited = GriffinCommon.getPrefValue("synchContactOwnedBy", "string");
-        GriffinCommon.api.
+        var ownershipLimited = Griffin.Prefs.getPrefValue("synchContactOwnedBy", "string");
         if((now.getTime() - lastUpdateDate.getTime()) > (30 * millisPerDay)){
             // TODO: Globalise
-            GriffinCommon.log("Synchronising contacts (SOQL)...", true, true, false);
+            Griffin.Logger.log("Synchronising contacts (SOQL)...", true, true, false);
             // Use SOQL to get updated records, as too much time has passed to use getUpdated                
             var soql = "SELECT " + retreiveFields + " FROM Contact WHERE LastModifiedDate > " + GriffinCommon.formatDateSfdc(lastUpdateDate);
             var userInfo;
             if(ownershipLimited == "ME"){
-                GriffinCommon.log("Limiting SOQL to just my contacts.", true, false, true);
+                Griffin.Logger.log("Limiting SOQL to just my contacts.", true, false, true);
                 // TODO: make getUserInfo query asynch (somehow!);
                 userInfo = sforce.connection.getUserInfo();
                 soql += " AND OwnerId = '" + userInfo.Id + "'"; 
             }
             if(ownershipLimited == "MYTEAM"){
                 // TODO: Really should test this.
-                GriffinCommon.log("Limiting SOQL to just my team.", true, false, true);
+                Griffin.Logger.log("Limiting SOQL to just my team.", true, false, true);
                 // TODO: make getUserInfo query asynch (somehow!);
                 userInfo = sforce.connection.getUserInfo();
                 var roleRes = sforce.connection.retrieve("UserRoleId", "User", [userInfo.Id]);
@@ -305,36 +306,36 @@ var GriffinMessage = {
                 }
                 soql += ")";
             }
-            GriffinCommon.log("querying salesforce using SOQL: " + soql, true, false, true);
+            Griffin.Logger.log("querying salesforce using SOQL: " + soql, true, false, true);
             // TODO: Security. SOQL injection possible?? Would probably only crash out, but worth checking.
             var result = sforce.connection.query(soql, {
                 onSuccess: function(result){
                     fn_updateMethod(result.getArray("records"));
                     },
                 onFailure: function(err){
-                    GriffinCommon.log(err, true, false, true);
+                    Griffin.Logger.log(err, true, false, true);
                 },
                 timeout: 5000
             });
         }
         else if ((now.getTime() - lastUpdateDate.getTime()) < millisPerMinute) {
-            GriffinCommon.log("Less than a minute since last query. (Griffin Ignores you for 10 damage).", true, false, true);
+            Griffin.Logger.log("Less than a minute since last query. (Griffin Ignores you for 10 damage).", true, false, true);
         }
         else{
             // TODO: filter results of getUpdated by Ownership criteria (is there any point in doing it then, esp given it's causing pain elsewhere?)
-            GriffinCommon.log("Synchronising contacts (getUpdated)...", true, true, false);
+            Griffin.Logger.log("Synchronising contacts (getUpdated)...", true, true, false);
             sforce.connection.getUpdated("Contact", lastUpdateDate, now, {
                 onSuccess: function(result){
                     sforce.connection.retrieve(retreiveFields, "Contact", result.getArray("ids"), {
                         onSuccess: fn_updateMethod,
                         onFailure:  function(err){
-                            GriffinCommon.log(err, true, false, true);
+                            Griffin.Logger.log(err, true, false, true);
                         },
                         timeout: 5000
                     });
                 },
                 onFailure: function(err){
-                    GriffinCommon.log(err, true, false, true);
+                    Griffin.Logger.log(err, true, false, true);
                 },
                 timeout: 5000
             });
@@ -342,19 +343,11 @@ var GriffinMessage = {
     },
     
     beginSynchContacts: function(){
-    
-        try{
-            var api = Griffin.CrmApi.GetApi("Salesforce");
-            api.login("kings@gambit.com", "30ashcroftKOjOndLBtOAESrITkkcJ9O1Z");
-        }
-        catch(e){
-            GriffinCommon.log(e, true);
-        }
-        var synchContactDir = GriffinCommon.getPrefValue("synchContactDir", "string");
+        var synchContactDir = Griffin.Prefs.getPrefValue("synchContactDir", "string");
         if(synchContactDir == "BOTH" ||
            synchContactDir == "SFDC") {
            
-            GriffinCommon.log("Synchronising contacts...", true, true, false);
+            Griffin.Logger.log("Synchronising contacts...", true, true, false);
             document.getElementById("synch_progress").value = 0;
             
             if(!GriffinCommon.ensureLogin()) {
@@ -369,7 +362,7 @@ var GriffinMessage = {
                 retreiveFields += fieldMap[i].sfdcField;
             }
             
-            var prefTime = GriffinCommon.getPrefValue("lastSynch", "string");
+            var prefTime = Griffin.Prefs.getPrefValue("lastSynch", "string");
             if(prefTime == null){
                 prefTime = 100;
             }
@@ -383,15 +376,15 @@ var GriffinMessage = {
     updateABFromContacts: function(contacts){
         // TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
         // TODO: Synch across multiple address books.
-        GriffinCommon.log("updateABFromContacts - " + contacts.length + " contacts to synch", true, false, true);
+        Griffin.Logger.log("updateABFromContacts - " + contacts.length + " contacts to synch", true, false, true);
         // Stop listening, or we'll receive try and update a bunch of stuff in SFDC.
         GriffinMessage.addressUnListen();
         var abDirUri = "moz-abmdbdirectory://abook.mab";
         var defaultDirectory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(Components.interfaces.nsIAbDirectory);
         var fieldMap = GriffinCommon.getFieldMap("Contact");
         for(var i = 0; i < contacts.length; i++){
-            GriffinCommon.log("Synchronising updates (" + (i + 1) + "/" + contacts.length + ").", true, true, false);
-            GriffinCommon.log("Id: " + contacts[i].Id, true, false, true);
+            Griffin.Logger.log("Synchronising updates (" + (i + 1) + "/" + contacts.length + ").", true, true, false);
+            Griffin.Logger.log("Id: " + contacts[i].Id, true, false, true);
             window.setTimeout("document.getElementById('synch_progress').value = " + ((i + 1) * 100 / contacts.length), 0);
             var currContact = contacts[i];
             
@@ -400,11 +393,11 @@ var GriffinMessage = {
             var newCard = (matchObj == null);
             var cardMatch = null;
             if(newCard){
-                GriffinCommon.log("Contact not found - Creating new card.", true, false, true);
+                Griffin.Logger.log("Contact not found - Creating new card.", true, false, true);
                 cardMatch = Components.classes["@mozilla.org/addressbook/cardproperty;1"].createInstance(Components.interfaces.nsIAbCard);
             }
             else{
-                GriffinCommon.log("Contact found - Updating card.", true, false, true);
+                Griffin.Logger.log("Contact found - Updating card.", true, false, true);
                 cardMatch = matchObj.Card;
             }
             GriffinMessage.setProps(cardMatch, fieldMap, currContact);
@@ -415,7 +408,7 @@ var GriffinMessage = {
                 cardMatch.editCardToDatabase(matchObj.Directory);
             }
         }
-        var propogateDeletions = GriffinCommon.getPrefValue("synchDeletions", "propogateDeletions");
+        var propogateDeletions = Griffin.Prefs.getPrefValue("synchDeletions", "propogateDeletions");
         if(propogateDeletions){
             //TODO: Should probably synch deletions here :-)
         }
@@ -424,8 +417,8 @@ var GriffinMessage = {
         GriffinMessage.addressListen();
         // TODO: Fix up the time that we're setting the last synch to. Must set to the time we set in salesforce query, not time update ends.
         var now = new Date();
-        GriffinCommon.setPrefValue("lastSynch", now.getTime(), "string");
-        GriffinCommon.log("Griffin Status", false, true, false);
+        Griffin.Prefs.setPrefValue("lastSynch", now.getTime(), "string");
+        Griffin.Logger.log("Griffin Status", false, true, false);
     },
     
     setProps: function(card, fieldMap, contact){
