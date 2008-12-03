@@ -229,12 +229,12 @@ var GriffinMessage = {
         if(!GriffinCommon.ensureLogin()){
             return;
         }
-        var taskMap = GriffinCommon.getFieldMap("Task");        
+        var taskMap = GriffinCommon.getFieldMap("Task");
         var tasks = [];
         var griffinMessages = [];
         for(var i = 0; i < messages.length; i++){
             var msg = new Griffin.Message(messages[i]);
-            var task = new sforce.SObject("Task");            
+            var task = {}; 
             for(var currFldIdx = 0; currFldIdx < taskMap.length; currFldIdx++){
                 var currFldMap = taskMap[currFldIdx];
                 task[currFldMap.sfdcField] = msg.getField(currFldMap.tbirdField);
@@ -242,7 +242,8 @@ var GriffinMessage = {
             griffinMessages.push(msg);
             tasks.push(task);
         }
-        GriffinCommon.api.insert(tasks);
+        var myObj = GriffinCommon.getCrmObjectFromTbirdObject("Task");
+        GriffinCommon.api.insert(myObj, tasks);
         /*
         sforce.connection.create(tasks, {
             onSuccess: function(result){

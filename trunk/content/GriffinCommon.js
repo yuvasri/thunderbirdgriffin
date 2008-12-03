@@ -59,7 +59,7 @@ if(!GriffinCommon || GriffinCommon == null){
             // TODO: Login asynchronously
             ensureLogin: function(){
                 if(GriffinCommon.api.isLoggedIn){
-                    return;
+                    return true;
                 }
                 Griffin.Logger.log("Logging in...", true, true, true);
                 var credentials = GriffinCommon.getCredentialsForUrl(GriffinCommon.api.endpoint);
@@ -68,7 +68,7 @@ if(!GriffinCommon || GriffinCommon == null){
                         var loginResult = GriffinCommon.api.login(credentials.user, credentials.password);
                     } catch (e) {
                         // TODO: Globalise.
-                         Griffin.Logger.log('Stored login for ' + url + ' failed with error ' + e, true, true, true);
+                         Griffin.Logger.log('Stored login for ' + GriffinCommon.api.endpoint + ' failed with error ' + e, true, true, true);
                     }
                 }
                 // No password saved or login failed. Login using the dialog box.
@@ -88,7 +88,7 @@ if(!GriffinCommon || GriffinCommon == null){
             
             getFieldMap: function(obj){    
                 var connection = GriffinCommon.getDbConnection();
-                var statement = connection.createStatement("SELECT tBirdField, sfdcField, strength FROM FieldMap fm, TBirdFields t WHERE t.fieldId = fm.fieldId AND t.object = '" + obj + "'");
+                var statement = connection.createStatement("SELECT tBirdField, sfdcField, strength FROM FieldMap fm, TBirdFields t, CRM c WHERE c.CRMName = '" + GriffinCommon.api.crmName + "' AND t.fieldId = fm.fieldId AND t.object = '" + obj + "'");
                 var fieldMap = [];
                 try{
                     while(statement.executeStep()){
@@ -104,6 +104,10 @@ if(!GriffinCommon || GriffinCommon == null){
                 }
             },
             
+            getCrmObjectFromTbirdObject: function(tbirdObj){
+                return GriffinCommon.executeScalar("SELECT om.CRMObject FROM ObjectMap om, CRM c WHERE om.CRMId = c.CRMId AND om.TBirdObject = '" + tbirdObj + "' AND c.CRMName = '" + GriffinCommon.api.crmName + "'");
+            },
+            
             // Get a connection to the database used for storing settings.
             // TODO: Cache connection??
             getDbConnection: function(){    
@@ -113,6 +117,20 @@ if(!GriffinCommon || GriffinCommon == null){
                 var storageService = Components.classes["@mozilla.org/storage/service;1"]
                                 .getService(Components.interfaces.mozIStorageService);
                 return storageService.openDatabase(file);
+            },
+            
+            executeScalar: function(statement){                
+                var connection = GriffinCommon.getDbConnection();
+                var sqlStatement = connection.createStatement(statement);
+                try{
+                    if(sqlStatement.executeStep()){
+                        return sqlStatement.getUTF8String(0);
+                    }
+                }
+                finally{
+                    sqlStatement.reset();
+                }
+                return null;
             },
             
             // TODO: Perhaps this should be somewhere else? Called on both addMessage, and synchContact methods. Some kind of OO class I imagine?

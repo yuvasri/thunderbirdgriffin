@@ -32,7 +32,7 @@ var GriffinLogin = {
     },
     
     onLoad: function(){
-        document.getElementById("url").value = window.opener.sforce.connection.serverUrl;
+        document.getElementById("url").value = GriffinCommon.api.endpoint;
     }
 };
 
