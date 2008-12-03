@@ -21,7 +21,9 @@ var GriffinOptions = {
     }, 
     
     initGeneralPanel: function(){
-        var url = Griffin.Prefs.getPrefValue("serverUrl", "string");
+        var selCrm = Griffin.Prefs.getPrefValue("crmSystem", "string");
+        document.getElementById("mlSelectedCRM").selectedItem = document.getElementById("miCrm" + selCrm);
+        var url = Griffin.Prefs.getPrefValue(selCrm + ".serverUrl", "string");
         var credentials = GriffinCommon.getCredentialsForUrl(url);
         document.getElementById("serverUrl").value = url;
         if(credentials != null){
@@ -29,7 +31,6 @@ var GriffinOptions = {
             document.getElementById("password").value = credentials.password;
             document.getElementById("rememberMe").checked = true;
         }
-        document.getElementById("miCrm" + Griffin.Prefs.getPrefValue("crmSystem", "string")).setAttribute("selected", "true");
     },
             
     initContactPanel: function(){
@@ -47,18 +48,28 @@ var GriffinOptions = {
         GriffinOptions.startAppendFieldMap("Task", "taskMapping");
     },
 
-    loginClick: function(){        
+    loginClick: function(){
+        var selCrm = document.getElementById("mlSelectedCRM").value;
+        var api = Griffin.CrmApi.GetApi(selCrm);
         var username = document.getElementById("username").value;
         var password = document.getElementById("password").value;
         var url = document.getElementById("serverUrl").value;
         try{
-            var result = sforce.connection.login(username, password);
-            Griffin.Logger.log("Log in complete.");
-            Griffin.Prefs.setPrefValue("serverUrl", url, "string");
-            if(document.getElementById("rememberMe").checked){
-                // TODO: Password manager - do we need to remove current login for this url before adding a new one?
-                var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
-                passwordManager.addUser(url, username, password);
+            if(api.login(username, password))
+            {
+                Griffin.Logger.log("Log in complete.");
+                
+                Griffin.Prefs.setPrefValue("crmSystem", selCrm, "string");
+                Griffin.Prefs.setPrefValue(selCrm + ".serverUrl", url, "string");
+                if(document.getElementById("rememberMe").checked){
+                    // TODO: Password manager - do we need to remove current login for this url before adding a new one?
+                    var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
+                    passwordManager.addUser(url, username, password);
+                }
+                GriffinCommon.api = api;
+            }
+            else{
+                Griffin.Logger.log("Login failed for user " + username + " at Url " + url, true, false, true);
             }
         }
         catch(err){
@@ -95,14 +106,39 @@ var GriffinOptions = {
         return props;
     },
     
-    getSfdcFieldsDropDown: function(obj){
+    // TODO: Need to get back to asynch at getFieldsDropDown, after change of api.
+    getFieldsDropDown: function(obj){
         if(GriffinOptions["fieldsDrop_" + obj]){
             return;
         }
         if(!GriffinCommon.ensureLogin()){
             GriffinOptions["fieldsDrop_" + obj] = document.createElement("textbox");
         }
-        var result = sforce.connection.describeSObject(obj, {
+        try{
+            var myObj = GriffinCommon.getCrmObjectFromTbirdObject(obj);
+            var fields = GriffinCommon.api.getFields(myObj);
+            var menulist = document.createElement("menulist");
+            var menupopup = document.createElement("menupopup");
+            menulist.appendChild(menupopup);
+            var menuitem = document.createElement("menuitem");
+            menuitem.setAttribute("label", "Not Mapped"); // Globalise!
+            menuitem.setAttribute("value", "");
+            menupopup.appendChild(menuitem);
+            for(var i = 0; i < fields.length; i++){
+                var currField = fields[i];
+                var menuitem = document.createElement("menuitem");
+                menuitem.setAttribute("label", currField.label);
+                menuitem.setAttribute("value", currField.name);
+                menupopup.appendChild(menuitem);
+            }
+            GriffinOptions["fieldsDrop_" + obj] = menulist;
+        }
+        catch(e){            
+            Griffin.Logger.log(e, true, false, true);
+            GriffinOptions["fieldsDrop_" + obj] = document.createElement("textbox");
+        }
+        /*
+        {
             onSuccess: function(result){
                 var menulist = document.createElement("menulist");
                 var menupopup = document.createElement("menupopup");
@@ -125,6 +161,7 @@ var GriffinOptions = {
                 GriffinOptions["fieldsDrop_" + obj] = document.createElement("textbox");
             }
         });
+        */
     },
     
     setSelected: function(menulist, val){
@@ -171,9 +208,10 @@ var GriffinOptions = {
     },
     
     updateFieldMap: function(obj){    
+        var crmId = GriffinCommon.executeScalar("SELECT CRMId FROM CRM Where CRMName = '" + GriffinCommon.api.crmName + "'");
         var mDBConn = GriffinCommon.getDbConnection();
-        var rep = mDBConn.createStatement("Replace Into FieldMap (fieldId, sfdcField, strength) Values (?1, ?2, ?3)");
-        var del = mDBConn.createStatement("Delete From FieldMap Where fieldId = ?1");
+        var rep = mDBConn.createStatement("Replace Into FieldMap (fieldId, sfdcField, strength, CRMId) Values (?1, ?2, ?3, " + crmId + ")");
+        var del = mDBConn.createStatement("Delete From FieldMap Where fieldId = ?1 And CRMId = " + crmId);
         try{
             var props = GriffinOptions.tbirdProps(obj);
             for(var i = 0; i < props.length; i++){
@@ -211,7 +249,7 @@ var GriffinOptions = {
         // Contact field mapping
         var vBox = document.getElementById(id);
         var mDBConn = GriffinCommon.getDbConnection();
-        var statement = mDBConn.createStatement("SELECT sfdcField, strength FROM FieldMap WHERE fieldId = ?1");
+        var statement = mDBConn.createStatement("SELECT f.sfdcField, f.strength FROM FieldMap f, CRM c WHERE fieldId = ?1 And c.CRMId = f.CRMId And c.CRMName = '" + GriffinCommon.api.crmName + "'");
         var properties = GriffinOptions.tbirdProps(obj);
         try{
             for(var i = 0; i < properties.length; i++){
@@ -257,7 +295,7 @@ var GriffinOptions = {
     },
     
     startAppendFieldMap: function(obj, id){
-        GriffinOptions.getSfdcFieldsDropDown(obj);
+        GriffinOptions.getFieldsDropDown(obj);
         GriffinOptions.appendFieldMap(obj, id);
     },
     
@@ -265,16 +303,16 @@ var GriffinOptions = {
         if(! GriffinOptions.validate()){
             return false;
         }
+        // Update database field mappings.
         GriffinOptions.updateFieldMap("Contact");
         GriffinOptions.updateFieldMap("Task");
+        // Update other prefs.
         Griffin.Prefs.setPrefValue("propogateDeletions", document.getElementById("synchDeleted").checked, "bool");
         Griffin.Prefs.setPrefValue("synchContactDir", document.getElementById("synchDir").selectedItem.value, "string");
         Griffin.Prefs.setPrefValue("synchContactOwnedBy", document.getElementById("synchOwn").selectedItem.value, "string");
         Griffin.Prefs.setPrefValue("synchContactFrequency", document.getElementById("synchFreq").value, "int");
-        Griffin.Prefs.setPrefValue("crmSystem", document.getElementById("mlSelectedCRM").selectedItem.value, "string");
         // We may have changed the frequency, so reschedule the synchronisation on the main page.
-        GriffinCommon.getFirstOpener().GriffinMessage.scheduleSynch();
-        // Now update database field mappings.
+        getFirstOpener().GriffinMessage.scheduleSynch();
         return true;
     }
     
