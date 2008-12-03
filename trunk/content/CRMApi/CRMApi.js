@@ -57,9 +57,21 @@ Griffin.Crm.prototype.validateOwnerShip = function(ownership){
 };
 
 // Derived crm interfaces should override these with functions to do the right thing.
-Griffin.Crm.prototype.getFields = null;
-Griffin.Crm.prototype.login = null;
-Griffin.Crm.prototype.insert = null;
+
+// Should usually be the first function called before doing anything else.
+Griffin.Crm.prototype.login function(username, password){};
+
+// Returns an array of Griffin.Crm.FieldInfo objects describing the fields of an input object.
+Griffin.Crm.prototype.getFields = function(type); 
+
+// Return an array of ids of newly created object Ids. Must preserve ordering of inputs!
+Griffin.Crm.prototype.insert = function(type, arrRecords){}; 
+
+// Return null
+Griffin.Crm.prototype.update = function(type, arrRecords){};
+ 
+// Returns an array of objects with appropriate fields set. More fields may be set than specified in fields parameter.
+Griffin.Crm.prototype.getRecords = function(type, modifiedSince, ownership, fields){}; 
 
 // An array of FieldInfo objects should be returned from the getFields call.
 Griffin.Crm.FieldInfo = function(name, label){
@@ -146,74 +158,107 @@ Griffin.SupportedCRMs.Zoho.login = function(username, apiKey){
 };
 
 // TODO: Zoho.getFields improvement. Could get one record of correct type and extract fields from that? In fact need to, as this doesn't take account of custom fields yet.
-Griffin.SupportedCRMs.Zoho.getFields = function(obj){
-    switch(obj){
-        case "Contacts": return [
-            new Griffin.Crm.FieldInfo("CONTACTID", "CONTACTID"),
-            new Griffin.Crm.FieldInfo("SMOWNERID", "SMOWNERID"),
-            new Griffin.Crm.FieldInfo("Contact Owner", "Contact Owner"),
-            new Griffin.Crm.FieldInfo("Lead Source", "Lead Source"),
-            new Griffin.Crm.FieldInfo("First Name", "First Name"),
-            new Griffin.Crm.FieldInfo("Last Name", "Last Name"),
-            new Griffin.Crm.FieldInfo("ACCOUNTID", "ACCOUNTID"),
-            new Griffin.Crm.FieldInfo("Account Name", "Account Name"),
-            new Griffin.Crm.FieldInfo("VENDORID", "VENDORID"),
-            new Griffin.Crm.FieldInfo("Vendor Name", "Vendor Name"),
-            new Griffin.Crm.FieldInfo("Email", "Email"),
-            new Griffin.Crm.FieldInfo("Title", "Title"),
-            new Griffin.Crm.FieldInfo("Department", "Department"),
-            new Griffin.Crm.FieldInfo("Phone", "Phone"),
-            new Griffin.Crm.FieldInfo("Home Phone", "Home Phone"),
-            new Griffin.Crm.FieldInfo("Other Phone", "Other Phone"),
-            new Griffin.Crm.FieldInfo("Fax", "Fax"),
-            new Griffin.Crm.FieldInfo("Mobile", "Mobile"),
-            new Griffin.Crm.FieldInfo("Date of Birth", "Date of Birth"),
-            new Griffin.Crm.FieldInfo("Assistant", "Assistant"),
-            new Griffin.Crm.FieldInfo("Asst Phone", "Asst Phone"),
-            new Griffin.Crm.FieldInfo("Reports To", "Reports To"),
-            new Griffin.Crm.FieldInfo("SMCREATORID", "SMCREATORID"),
-            new Griffin.Crm.FieldInfo("Created By", "Created By"),
-            new Griffin.Crm.FieldInfo("MODIFIEDBY", "MODIFIEDBY"),
-            new Griffin.Crm.FieldInfo("Modified By", "Modified By"),
-            new Griffin.Crm.FieldInfo("Created Time", "Created Time"),
-            new Griffin.Crm.FieldInfo("Modified Time", "Modified Time"),
-            new Griffin.Crm.FieldInfo("Common Status", "Common Status"),
-            new Griffin.Crm.FieldInfo("Mailing Street", "Mailing Street"),
-            new Griffin.Crm.FieldInfo("Other Street", "Other Street"),
-            new Griffin.Crm.FieldInfo("Mailing City", "Mailing City"),
-            new Griffin.Crm.FieldInfo("Other City", "Other City"),
-            new Griffin.Crm.FieldInfo("Mailing State", "Mailing State"),
-            new Griffin.Crm.FieldInfo("Other State", "Other State"),
-            new Griffin.Crm.FieldInfo("Mailing Zip", "Mailing Zip"),
-            new Griffin.Crm.FieldInfo("Other Zip", "Other Zip"),
-            new Griffin.Crm.FieldInfo("Mailing Country", "Mailing Country"),
-            new Griffin.Crm.FieldInfo("Other Country", "Other Country"),
-            new Griffin.Crm.FieldInfo("Description", "Description"),
-            new Griffin.Crm.FieldInfo("Email Opt Out", "Email Opt Out"),
-            new Griffin.Crm.FieldInfo("Skype ID", "Skype ID"),
-            new Griffin.Crm.FieldInfo("CAMPAIGNID", "CAMPAIGNID"),
-            new Griffin.Crm.FieldInfo("Campaign Source", "Campaign Source"),
-            new Griffin.Crm.FieldInfo("Salutation", "Salutation")];
-        case "Tasks": return [
-            new Griffin.Crm.FieldInfo("ACTIVITYID", "ACTIVITYID"),
-            new Griffin.Crm.FieldInfo("SMOWNERID", "SMOWNERID"),
-            new Griffin.Crm.FieldInfo("Task Owner", "Task Owner"),
-            new Griffin.Crm.FieldInfo("Subject", "Subject"),
-            new Griffin.Crm.FieldInfo("Due Date", "Due Date"),
-            new Griffin.Crm.FieldInfo("Contact Name", "Contact Name"),
-            new Griffin.Crm.FieldInfo("Related To", "Related To"),
-            new Griffin.Crm.FieldInfo("Status", "Status"),
-            new Griffin.Crm.FieldInfo("Priority", "Priority"),
-            new Griffin.Crm.FieldInfo("SMCREATORID", "SMCREATORID"),
-            new Griffin.Crm.FieldInfo("Created By", "Created By"),
-            new Griffin.Crm.FieldInfo("MODIFIEDBY", "MODIFIEDBY"),
-            new Griffin.Crm.FieldInfo("Modified By", "Modified By"),
-            new Griffin.Crm.FieldInfo("Created Time", "Created Time"),
-            new Griffin.Crm.FieldInfo("Modified Time", "Modified Time"),
-            new Griffin.Crm.FieldInfo("Description", "Description"),
-            new Griffin.Crm.FieldInfo("Send Notification Email", "Send Notification Email")];
-       default:
-            throw {message: "object type " + obj + " not defined!"}
+Griffin.SupportedCRMs.Zoho.getFields = function(obj){    
+    if(!this.isLoggedIn){
+        throw "login call must have been performed prior to getting fields.";
+    }
+    var prevEndpoint = this.endpoint;
+    this.endpoint = this.endpoint + obj + "/getAllRecords?loginName=" + this.username + "&apikey=" + this.apiKey + "&fromIndex=1&toIndex=1";
+    var retVal;
+    try{
+        retVal = this.invoke(undefined, undefined, undefined, undefined, "GET");
+    }
+    catch(e){
+        if(e.code && e.code == 4832){
+            switch(obj){
+                case "Contacts": return [
+                    new Griffin.Crm.FieldInfo("CONTACTID", "CONTACTID"),
+                    new Griffin.Crm.FieldInfo("SMOWNERID", "SMOWNERID"),
+                    new Griffin.Crm.FieldInfo("Contact Owner", "Contact Owner"),
+                    new Griffin.Crm.FieldInfo("Lead Source", "Lead Source"),
+                    new Griffin.Crm.FieldInfo("First Name", "First Name"),
+                    new Griffin.Crm.FieldInfo("Last Name", "Last Name"),
+                    new Griffin.Crm.FieldInfo("ACCOUNTID", "ACCOUNTID"),
+                    new Griffin.Crm.FieldInfo("Account Name", "Account Name"),
+                    new Griffin.Crm.FieldInfo("VENDORID", "VENDORID"),
+                    new Griffin.Crm.FieldInfo("Vendor Name", "Vendor Name"),
+                    new Griffin.Crm.FieldInfo("Email", "Email"),
+                    new Griffin.Crm.FieldInfo("Title", "Title"),
+                    new Griffin.Crm.FieldInfo("Department", "Department"),
+                    new Griffin.Crm.FieldInfo("Phone", "Phone"),
+                    new Griffin.Crm.FieldInfo("Home Phone", "Home Phone"),
+                    new Griffin.Crm.FieldInfo("Other Phone", "Other Phone"),
+                    new Griffin.Crm.FieldInfo("Fax", "Fax"),
+                    new Griffin.Crm.FieldInfo("Mobile", "Mobile"),
+                    new Griffin.Crm.FieldInfo("Date of Birth", "Date of Birth"),
+                    new Griffin.Crm.FieldInfo("Assistant", "Assistant"),
+                    new Griffin.Crm.FieldInfo("Asst Phone", "Asst Phone"),
+                    new Griffin.Crm.FieldInfo("Reports To", "Reports To"),
+                    new Griffin.Crm.FieldInfo("SMCREATORID", "SMCREATORID"),
+                    new Griffin.Crm.FieldInfo("Created By", "Created By"),
+                    new Griffin.Crm.FieldInfo("MODIFIEDBY", "MODIFIEDBY"),
+                    new Griffin.Crm.FieldInfo("Modified By", "Modified By"),
+                    new Griffin.Crm.FieldInfo("Created Time", "Created Time"),
+                    new Griffin.Crm.FieldInfo("Modified Time", "Modified Time"),
+                    new Griffin.Crm.FieldInfo("Common Status", "Common Status"),
+                    new Griffin.Crm.FieldInfo("Mailing Street", "Mailing Street"),
+                    new Griffin.Crm.FieldInfo("Other Street", "Other Street"),
+                    new Griffin.Crm.FieldInfo("Mailing City", "Mailing City"),
+                    new Griffin.Crm.FieldInfo("Other City", "Other City"),
+                    new Griffin.Crm.FieldInfo("Mailing State", "Mailing State"),
+                    new Griffin.Crm.FieldInfo("Other State", "Other State"),
+                    new Griffin.Crm.FieldInfo("Mailing Zip", "Mailing Zip"),
+                    new Griffin.Crm.FieldInfo("Other Zip", "Other Zip"),
+                    new Griffin.Crm.FieldInfo("Mailing Country", "Mailing Country"),
+                    new Griffin.Crm.FieldInfo("Other Country", "Other Country"),
+                    new Griffin.Crm.FieldInfo("Description", "Description"),
+                    new Griffin.Crm.FieldInfo("Email Opt Out", "Email Opt Out"),
+                    new Griffin.Crm.FieldInfo("Skype ID", "Skype ID"),
+                    new Griffin.Crm.FieldInfo("CAMPAIGNID", "CAMPAIGNID"),
+                    new Griffin.Crm.FieldInfo("Campaign Source", "Campaign Source"),
+                    new Griffin.Crm.FieldInfo("Salutation", "Salutation")];
+                case "Tasks": return [
+                    new Griffin.Crm.FieldInfo("ACTIVITYID", "ACTIVITYID"),
+                    new Griffin.Crm.FieldInfo("SMOWNERID", "SMOWNERID"),
+                    new Griffin.Crm.FieldInfo("Task Owner", "Task Owner"),
+                    new Griffin.Crm.FieldInfo("Subject", "Subject"),
+                    new Griffin.Crm.FieldInfo("Due Date", "Due Date"),
+                    new Griffin.Crm.FieldInfo("Contact Name", "Contact Name"),
+                    new Griffin.Crm.FieldInfo("Related To", "Related To"),
+                    new Griffin.Crm.FieldInfo("Status", "Status"),
+                    new Griffin.Crm.FieldInfo("Priority", "Priority"),
+                    new Griffin.Crm.FieldInfo("SMCREATORID", "SMCREATORID"),
+                    new Griffin.Crm.FieldInfo("Created By", "Created By"),
+                    new Griffin.Crm.FieldInfo("MODIFIEDBY", "MODIFIEDBY"),
+                    new Griffin.Crm.FieldInfo("Modified By", "Modified By"),
+                    new Griffin.Crm.FieldInfo("Created Time", "Created Time"),
+                    new Griffin.Crm.FieldInfo("Modified Time", "Modified Time"),
+                    new Griffin.Crm.FieldInfo("Description", "Description"),
+                    new Griffin.Crm.FieldInfo("Send Notification Email", "Send Notification Email")];
+               default:
+                    throw "object type " + obj + " not defined!";
+            } // End switch
+        } // End if
+        else{
+            // Unknown error code. Upchuck.
+            throw e;
+        }
+    } // End catch
+    finally{
+        this.endpoint = prevEndpoint;
+    }
+    if(retVal.result){
+        var retArr = [];
+        var labels = retVal.result[obj].row.fieldlabel;
+        if(labels instanceof Array){
+            for(var i = 0; i < labels.length; i++)
+                retArr.push(new Griffin.Crm.FieldInfo(labels[i].value, labels[i].value));
+        }
+        else{
+            // only one field!!
+            retArr.push(new Griffin.Crm.FieldInfo(labels.value, labels.value));
+        }
+        return retArr;
     }
 };
 
@@ -392,7 +437,7 @@ var SOAPClient = {
             if(currChild.childNodes.length == 0){
                 SOAPClient.appendResult(obj, currChild.nodeName, null);
             }
-            else if(currChild.childNodes.length == 1 && currChild.firstChild.nodeType == Node.TEXT_NODE){
+            else if(currChild.childNodes.length == 1 && currChild.attributes.length == 0 && currChild.firstChild.nodeType == Node.TEXT_NODE){
                 SOAPClient.appendResult(obj, currChild.nodeName, currChild.firstChild.nodeValue);
             }
             else{

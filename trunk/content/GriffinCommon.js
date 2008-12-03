@@ -1,5 +1,3 @@
-// Make sure sforce connection is available on all pages.
-
 function getFirstOpener(){
     var last;
     var opener = window.self;
@@ -232,11 +230,6 @@ if(!GriffinCommon || GriffinCommon == null){
             api: Griffin.CrmApi.GetApi()
         };
     }
-}
-
-// Make sure sforce connection is available on all pages.
-if(!sforce || sforce == null){
-    var sforce = getFirstOpener().sforce;
 }
 
 /*
