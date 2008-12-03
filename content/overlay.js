@@ -58,11 +58,10 @@ var GriffinMessage = {
     // http://www.xulplanet.com/references/xpcomref/ifaces/nsIAbListener.html
     gfn_addressBookListener: {
     
-        timeout: null,
-        cardsToInsert: [],        
-        cardsToUpdate: [],
+        timeout: null,     
+        cardsToSave: [],
     
-        insertCardsSFDC: function(card){
+        saveCardsToCRM: function(){
            GriffinMessage.gfn_addressBookListener.timeout = null;
             if(!GriffinCommon.ensureLogin()) {
                 return;
@@ -71,33 +70,35 @@ var GriffinMessage = {
             var synchContactDir = Griffin.Prefs.getPrefValue("synchContactDir", "string");
             if(synchContactDir == "BOTH" ||
                 synchContactDir == "TBIRD") {
+                var myObj = GriffinCommon.getCrmObjectFromTbirdObject("Contact");
                 var fieldMap = GriffinCommon.getFieldMap("Contact");
-                var contacts = [];
                 var cards = GriffinMessage.gfn_addressBookListener.cardsToSave;
                 for(var i = 0; i < cards.length; i++){
-                    contacts.push(GriffinMessage.gfn_addressBookListener.setContactVals(card, fieldMap));
+                    var contact = GriffinMessage.gfn_addressBookListener.setContactVals(card, fieldMap);
                 }
                 var result;
                 if(contact.Id.length > 0){
-                    result = sforce.connection.update(contacts);
+                    try{
+                        GriffinCommon.api.update(myObj, contact);
+                    }
+                    catch(e){
+                        Griffin.Logger.log("Failed to update contact." + e, true, false, true);
+                    }
                 }
                 else{
-                    result = sforce.connection.create([contact]);
-                    if(result[0].getBoolean("success")){
-                        // TODO: Deal with non-editable salesforce fields.
-                        gEditCard.card[GriffinCard.getIdField(fieldMap)] = result[0].id;
+                    try{
+                        var result = GriffinCommon.api.insert(myObj, contact);
+                        gEditCard.card[GriffinCard.getIdField(fieldMap)] = result[0];
                     }
-                    else{
-                        // TODO: Globalise?
-                        Griffin.Logger.log("failed to create contact " + result[0], true, false, true);
+                    catch(e){
+                        Griffin.Logger.log("Failed to insert contact." + e, true, false, true);
                     }
                 }
-                return result[0].getBoolean("success");
             }
         },
     
         setContactVals: function(card, fieldMap){
-            var contact = new sforce.SObject("Contact");
+            var contact = {};
             for(var i = 0; i < fieldMap.length; i++){
                 var currMapping = fieldMap[i];
                 contact[currMapping.sfdcField] = card[currMapping.tbirdField];
@@ -118,7 +119,7 @@ var GriffinMessage = {
             if(GriffinMessage.gfn_addressBookListener.timeout != null){
                 window.clearTimeout(GriffinMessage.gfn_addressBookListener.timeout);
             }
-            GriffinMessage.gfn_addressBookListener.timeout = window.setTimeout("GriffinMessage.gfn_addressBookListener.saveCardsToSFDC();", timeout);
+            GriffinMessage.gfn_addressBookListener.timeout = window.setTimeout("GriffinMessage.gfn_addressBookListener.saveCardsToCRM();", timeout);
         },      
     
         onItemAdded: function(parentDir, item ){
@@ -135,8 +136,11 @@ var GriffinMessage = {
                 return;
             }
             GriffinMessage.gfn_addressBookListener.cardsToSave.push(item);
+            if(GriffinMessage.gfn_addressBookListener.timeout != null){
+                window.clearTimeout(GriffinMessage.gfn_addressBookListener.timeout);
+            }
             var timeout = Griffin.Prefs.getPrefValue("messageBatchingTimeout", "int");
-            GriffinMessage.gfn_addressBookListener.timeout = window.setTimeout("GriffinMessage.gfn_addressBookListener.saveCardsToSFDC();", timeout);
+            GriffinMessage.gfn_addressBookListener.timeout = window.setTimeout("GriffinMessage.gfn_addressBookListener.saveCardsToCRM();", timeout);
         },
         
         onItemRemoved: function(parentDir, item ){
@@ -244,20 +248,9 @@ var GriffinMessage = {
         }
         var myObj = GriffinCommon.getCrmObjectFromTbirdObject("Task");
         GriffinCommon.api.insert(myObj, tasks);
-        /*
-        sforce.connection.create(tasks, {
-            onSuccess: function(result){
-                Griffin.Logger.log("Successfully added messages!", true, true, true);
-                Griffin.Logger.log("Griffin Status", false, true);
-                if(callback){
-                    callback(griffinMessages);
-                }
-            },
-            onFailure: function(err){
-                Griffin.Logger.log("Failed to add messages. Messge was " + err, true, false, true);
-            }
-        });
-        */
+        if(callback){
+            callback(griffinMessages);
+        }
     },
     
     openOptions: function(e){

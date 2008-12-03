@@ -57,7 +57,6 @@
   <ItemGroup>
     <None Include="chrome.manifest" />
     <None Include="content\about.xul" />
-    <None Include="content\CRMApi\salesforce.wsdl" />
     <None Include="content\login.xul" />
     <None Include="content\options.xul" />
     <None Include="content\overlay.xul" />
@@ -76,9 +75,7 @@
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="content\connection.js" />
     <Content Include="content\CRMApi\CRMApi.js" />
-    <Content Include="content\CRMApi\soapclient.js" />
     <Content Include="content\FieldMap.js" />
     <Content Include="content\Log.js" />
     <Content Include="content\login.js" />
