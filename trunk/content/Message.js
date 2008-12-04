@@ -3,8 +3,6 @@ if (!Griffin) {
     Griffin = {};
 }
 
-//TODO: Give contacts a similar object to messages, to provide extensibility with extra fields.
-
 // Constructor
 Griffin.Message = function(uri){
     this.uri = uri;
@@ -18,7 +16,7 @@ Griffin.Message.prototype.getDate = function(){
     // this.innerMessage.date appears to be in ticks - convert to millis and format it sfdc style to make usable.
     var myDate = new Date();
     myDate.setTime(this.innerMessage.date / 1000);
-    return GriffinCommon.formatDateSfdc(myDate);
+    return GriffinCommon.api.formatDate(myDate);
 };
 
 // Uses global variables messenger and msgWindow. Lets hope they exist!

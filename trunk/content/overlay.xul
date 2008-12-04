@@ -5,6 +5,7 @@
   <!-- TODO: Globalise menu labels on message window overlay. -->
   <script src="chrome://griffin/content/connection.js" type="text/javascript"></script>
   <script src="chrome://griffin/content/Message.js" type="text/javascript"></script>
+  <script src="chrome://griffin/content/Contact.js" type="text/javascript"></script>
   <script src="chrome://griffin/content/FieldMap.js" type="text/javascript"></script>
   <script src="chrome://griffin/content/Prefs.js" type="text/javascript"></script>
   <script src="chrome://griffin/content/Log.js" type="text/javascript"></script>

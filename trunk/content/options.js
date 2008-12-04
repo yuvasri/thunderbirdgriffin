@@ -118,6 +118,9 @@ var GriffinOptions = {
             var myObj = GriffinCommon.getCrmObjectFromTbirdObject(obj);
             var fields = GriffinCommon.api.getFields(myObj);
             var menulist = document.createElement("menulist");
+            //TODO: Find a slick way of making constant values be inserted into crm / tbird? Make use of editable menulists?? Could change to 2 drop downs instead of current static list + drop down? (nice idea :-)
+            //TODO: Enforce one-to-one relationship for field mappings.
+            //menulist.setAttribute("editable", "true");
             var menupopup = document.createElement("menupopup");
             menulist.appendChild(menupopup);
             var menuitem = document.createElement("menuitem");

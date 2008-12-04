@@ -43,17 +43,38 @@ Griffin.Crm.prototype.validateOwnerShip = function(ownership){
     if(ownership == "ME" || ownership == "ALL"){
         return true;
     }
-    else if(this.crmName == "Zoho"){
-        // Cannot use "MYTEAM" in Zoho
-        return false;
-    }
-    else if(this.crmName == "Salesforce"){
-        return ownership == "MYTEAM";
-    }
     else{
         // Ownership parameter not recognised.
         return false;
     }
+};
+
+
+// TODO: Unstink-ify the padLeft function (there must be a way!!).
+Griffin.Crm.prototype._padLeft = function(inString, padChar, targetLen){
+    while(inString.length < targetLen){
+        inString = padChar + inString;
+    }
+    return inString;
+};
+
+Griffin.Crm.prototype._ensureArray = function(obj){
+    if(obj instanceof Array)
+        return obj;
+    else 
+        return [obj];
+}
+
+// Converts a date to UTC and formats in the style yyyy-MM-ddYhh:mm:ssZ 
+Griffin.Crm.prototype.formatDate = function(inDate){
+    var year = this._padLeft(inDate.getUTCFullYear().toString(), "0", 4);
+    // Gotcha! getMonth runs from 0-11, so add one to result!
+    var month = this._padLeft((inDate.getUTCMonth() + 1).toString(), "0", 2); 
+    var day = this._padLeft(inDate.getUTCDate().toString(), "0", 2);
+    var hour = this._padLeft(inDate.getUTCHours().toString(), "0", 2);
+    var minute = this._padLeft(inDate.getUTCMinutes().toString(), "0", 2);
+    var second = this._padLeft(inDate.getUTCSeconds().toString(), "0", 2);
+    return year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second + "Z";
 };
 
 // Derived crm interfaces should override these with functions to do the right thing.
@@ -67,8 +88,9 @@ Griffin.Crm.prototype.getFields = function(type){};
 // Return an array of ids of newly created object Ids. Must preserve ordering of inputs!
 Griffin.Crm.prototype.insert = function(type, arrRecords){}; 
 
-// Return null
-Griffin.Crm.prototype.update = function(type, arrRecords){};
+// Update or insert, based on the existance of the uniqueId for this crm. returns id if inserted.
+// records *MUST* have the correct uniqueId populated if an update is to be performed.
+Griffin.Crm.prototype.upsert = function(type, record){};
  
 // Returns an array of objects with appropriate fields set. More fields may be set than specified in fields parameter.
 Griffin.Crm.prototype.getRecords = function(type, modifiedSince, ownership, fields){}; 
@@ -90,17 +112,10 @@ Griffin.SupportedCRMs.Salesforce.login = function (username, password){
     var result = this.invoke("login", params);
     this.sessionId = result.loginResponse.result.sessionId;
     this.endpoint = result.loginResponse.result.serverUrl;
+    // userId useful for ownership limited queries, so save for later.
+    this.userId = result.loginResponse.result.userId;
     this.isLoggedIn = true;
     return true;
-};
-
-Griffin.SupportedCRMs.Salesforce.query = function(object, modifiedSince, ownership, fields){
-    if(!ownership){
-        this.ownership = "ME";
-    }
-    if(!this.validateOwnerShip()){
-        throw "Invalid ownership";
-    }
 };
 
 Griffin.SupportedCRMs.Salesforce.insert = function(type, sObjects){
@@ -120,15 +135,6 @@ Griffin.SupportedCRMs.Salesforce.insert = function(type, sObjects){
     return result.createResponse.result.success;
 };
 
-/*
-<se:Envelope xmlns:se="http://schemas.xmlsoap.org/soap/envelope/">
-<se:Header xmlns:sfns="urn:partner.soap.sforce.com"/>
-<se:Body>
-<describeSObject xmlns="urn:partner.soap.sforce.com" xmlns:ns1="sobject.partner.soap.sforce.com">
-<sObjectType>Contact</sObjectType></describeSObject></se:Body>
-</se:Envelope>
-*/
-// TODO: Extract FieldInfos from result of describeSObject.
 Griffin.SupportedCRMs.Salesforce.getFields = function(obj){
     var hdr = this._getHeader();    
     var describeSObjectParams = new SOAPClientParameters();
@@ -140,6 +146,20 @@ Griffin.SupportedCRMs.Salesforce.getFields = function(obj){
         retArr.push(new Griffin.Crm.FieldInfo(fields[i].name, fields[i].label));
     }
     return retArr;
+};
+
+Griffin.SupportedCRMs.Salesforce.getRecords = function(object, modifiedSince, ownership, fields){
+    var soql = "SELECT " + retreiveFields + " FROM " + object + " WHERE LastModifiedDate > " + this.formatDate(modifiedSince);
+    var userInfo;
+    if(ownershipLimited == "ME")
+        soql += " AND OwnerId = '" + this.userId + "'";
+    var hdr = this._getHeader();
+    var params = new SOAPClientParameters();
+    params.add("queryString", soql);
+    var retVal = this.invoke("query", params, hdr);
+    // TODO: go through pain of queryMore interface. It's a pain in the arse with C#, so it'll be hellish with a custom API.
+    var records = retVal.queryResponse.result.records;
+    return this._ensureArray(records);
 };
 
 Griffin.SupportedCRMs.Salesforce._getHeader = function(){
@@ -162,13 +182,13 @@ Griffin.SupportedCRMs.Zoho.login = function(username, apiKey){
     return true;
 };
 
-// TODO: Zoho.getFields improvement. Could get one record of correct type and extract fields from that? In fact need to, as this doesn't take account of custom fields yet.
+// TODO: Zoho.getFields cleanup.
 Griffin.SupportedCRMs.Zoho.getFields = function(obj){    
     if(!this.isLoggedIn){
         throw "login call must have been performed prior to getting fields.";
     }
     var prevEndpoint = this.endpoint;
-    this.endpoint = this.endpoint + obj + "/getAllRecords?loginName=" + this.username + "&apikey=" + this.apiKey + "&fromIndex=1&toIndex=1";
+    this.endpoint = this.endpoint + obj + "/getAllRecords" + this._loginQueryString() + "&fromIndex=1&toIndex=1";
     var retVal;
     try{
         retVal = this.invoke(undefined, undefined, undefined, undefined, "GET");
@@ -254,15 +274,9 @@ Griffin.SupportedCRMs.Zoho.getFields = function(obj){
     }
     if(retVal.result){
         var retArr = [];
-        var labels = retVal.result[obj].row.fieldlabel;
-        if(labels instanceof Array){
-            for(var i = 0; i < labels.length; i++)
-                retArr.push(new Griffin.Crm.FieldInfo(labels[i].value, labels[i].value));
-        }
-        else{
-            // only one field!!
-            retArr.push(new Griffin.Crm.FieldInfo(labels.value, labels.value));
-        }
+        var labels = this._ensureArray(retVal.result[obj].row.fieldlabel);
+        for(var i = 0; i < labels.length; i++)
+            retArr.push(new Griffin.Crm.FieldInfo(labels[i].value, labels[i].value));
         return retArr;
     }
 };
@@ -275,27 +289,130 @@ Griffin.SupportedCRMs.Zoho.insert = function(type, objects){
         throw "login call must have been performed prior to inserting records.";
     }
     var prevEndpoint = this.endpoint;
+    var ids = [];
     for(var i = 0; i < objects.length; i++){
-        var wrapRow = new SOAPClientParameters();
-        
-        var fieldsList = new SOAPClientParameters();        
-        for(prop in objects[i]){
-            if(typeof(objects[i][prop]) != "function"){
-                var addedObj = fieldsList.add("fieldlabel", objects[i][prop]);
-                addedObj["value"] = prop;
-            }
-        }
-        var row = wrapRow.add("row", fieldsList);
-        row["no"] = 1;
-        var xmlData = "<" + type + ">" + wrapRow.toXml() + "</" + type + ">";
-        this.endpoint = this.endpoint + type + "/insertRecords?loginName=" + this.username + "&apikey=" + this.apiKey + "&xmlData=" + encodeURIComponent(xmlData);
+        var xml = this._getRecordXml(type, objects[i]);
+        this.endpoint = this.endpoint + type + "/insertRecords" + this._loginQueryString() + "&xmlData=" + encodeURIComponent(xml);
+        var retVal;
         try{
-            this.invoke(undefined, undefined, undefined, undefined, "GET");
+            retVal = this.invoke(undefined, undefined, undefined, undefined, "POST");
+            // Assume that the first fieldlabel parameter of the recordDetail has id.
+            ids.push(retVal.result.recorddetail.fieldlabel[0].innerText);
         }
         finally{
             this.endpoint = prevEndpoint;
-        }   
-    }  
+        }
+    }
+    return ids;
+};
+
+Griffin.SupportedCRMs.Zoho.upsert = function(object, record){
+    if(!this.isLoggedIn){
+        throw "login call must have been performed prior to upserting records.";
+    }
+    var prevEndpoint = this.endpoint;
+    var xml = this._getRecordXml(object, record);
+    var idField = this._idFieldFromType(object);
+    if(record[idField]){
+        try{
+            this.endpoint = this.endpoint + object + "/updateRecords" + this._loginQueryString() + "&xmlData=" + encodeURIComponent(xml) + "&id=" + record[idField];
+            var res = this.invoke(undefined, undefined, undefined, undefined, "POST");
+            return null; // TODO: Zoho.upsert handle case of invalid id (by inserting)
+        }
+        finally{
+            this.endpoint = prevEndpoint;
+        }
+    }
+    else{            
+        try{
+            this.endpoint = this.endpoint + object + "/insertRecords" + this._loginQueryString() + "&xmlData=" + encodeURIComponent(xml);
+            var retVal = this.invoke(undefined, undefined, undefined, undefined, "POST");
+            return retVal.result.recorddetail.fieldlabel[0].innerText;
+        }
+        finally{
+            this.endpoint = prevEndpoint;
+        }
+    }
+};
+
+// NB Fields parameter is ignored.
+Griffin.SupportedCRMs.Zoho.getRecords = function(object, modifiedSince, ownership){
+    if(!this.isLoggedIn){
+        throw "login call must have been performed prior to querying records.";
+    }    
+    var prevEndpoint = this.endpoint;
+    this.endpoint = this.endpoint + object + "/" + (ownership == "MY" ? "getMyRecords" : "getAllRecords" ) + this._loginQueryString() + "&lastModifiedTime=" + encodeURIComponent(this.formatDate(modifiedSince));
+    var retArr = [];
+    var retVal;
+    try{
+        retVal = this.invoke(undefined, undefined, undefined, undefined, "GET");
+    }
+    catch(e){
+        if(e.code && e.code == 4832){
+            // No data... not really an error as such.
+            return retArr;
+        }
+        else {
+            // Genuine error.
+            throw e;
+        }
+    }
+    finally{
+        this.endpoint = prevEndpoint;
+    }
+    var rows = this._ensureArray(retVal.result[object].row);
+    for(var i = 0; i < rows.length; i++){            
+        var obj = {};
+        var labels = this._ensureArray(rows[i].fieldlabel);
+        for(var j = 0; j < labels.length; j++){
+            var currField = labels[j];
+            var val = currField.innerText ? currField.innerText : null;
+            obj[currField.value] = (val == "null" ? null : val);
+        }
+        retArr.push(obj);
+    }
+    return retArr;
+};
+
+Griffin.SupportedCRMs.Zoho.formatDate = function(inDate){
+    var year = this._padLeft(inDate.getUTCFullYear().toString(), "0", 4);
+    // Gotcha! getMonth runs from 0-11, so add one to result!
+    var month = this._padLeft((inDate.getUTCMonth() + 1).toString(), "0", 2); 
+    var day = this._padLeft(inDate.getUTCDate().toString(), "0", 2);
+    var hour = this._padLeft(inDate.getUTCHours().toString(), "0", 2);
+    var minute = this._padLeft(inDate.getUTCMinutes().toString(), "0", 2);
+    var second = this._padLeft(inDate.getUTCSeconds().toString(), "0", 2);
+    return year + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second;
+};
+
+Griffin.SupportedCRMs.Zoho._idFieldFromType = function(objectType){
+    switch(objectType){
+        case "Contacts":
+            return "CONTACTID";
+        case "Tasks":
+            return "ACTIVITYID";
+    }
+    throw "_idFieldFromType does not understand object " + objectType;
+};
+
+Griffin.SupportedCRMs.Zoho._loginQueryString = function(){
+    return "?loginName=" + this.username + "&apikey=" + this.apiKey;
+};
+
+Griffin.SupportedCRMs.Zoho._getRecordXml = function(type, record){
+    var wrapRow = new SOAPClientParameters();
+    var fieldsList = new SOAPClientParameters();
+    var idField = this._idFieldFromType(type);
+    for(prop in record){
+        if(typeof(record[prop]) != "function" && prop != idField){
+            var addedObj = fieldsList.add("fieldlabel", record[prop]);
+            addedObj["value"] = prop;
+        }
+    }
+    var row = wrapRow.add("row", fieldsList);
+    row["no"] = 1;
+    var xmlData = "<" + type + ">" + wrapRow.toXml() + "</" + type + ">";
+    return xmlData;
 };
 
 function SOAPClientParameters()
@@ -358,7 +475,7 @@ var SOAPClient = {
     {
 	    // build SOAP request
 	    var sr;
-	    if(action == "POST"){
+	    if(action == "POST" && parameters){
 	        sr =    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + 
 	                "<soap:Envelope " + (ns ? "xmlns:myns=\"" + ns + "\" " : "") + "xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
 			        "<soap:Header>" + headerParameters.toXml(ns ? "myns" : undefined) + 
@@ -436,8 +553,8 @@ var SOAPClient = {
         }
         for(var childIdx = 0; childIdx < node.childNodes.length; childIdx++){
             var currChild = node.childNodes[childIdx];
-            if(currChild.nodeType == Node.TEXT_NODE){
-                continue;
+            if(currChild.nodeType == Node.TEXT_NODE || currChild.nodeType == node.CDATA_SECTION_NODE){
+                SOAPClient.appendResult(obj, "innerText", currChild.nodeValue);
             }
             if(currChild.childNodes.length == 0){
                 SOAPClient.appendResult(obj, currChild.nodeName, null);

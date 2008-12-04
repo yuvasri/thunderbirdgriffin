@@ -80,7 +80,7 @@
             <listbox id="synchOwn" rows="3" flex="1">
               <listitem label="&option.all;" id="synchOwn_ALL" value="ALL"  />
               <listitem label="&option.my;" id="synchOwn_ME" value="ME" />
-              <listitem label="&option.team;" id="synchOwn_MYTEAM" value="MYTEAM" />
+              <!-- <listitem label="&option.team;" id="synchOwn_MYTEAM" value="MYTEAM" /> -->
             </listbox>            
             <hbox>
               <label>&lbl.synchFreq;</label>

@@ -1,8 +1,6 @@
 content griffin content/
 
 overlay chrome://messenger/content/messenger.xul chrome://griffin/content/overlay.xul
-overlay chrome://messenger/content/addressbook/abNewCardDialog.xul chrome://griffin/content/cardOverlay.xul
-overlay chrome://messenger/content/addressbook/abEditCardDialog.xul chrome://griffin/content/cardOverlay.xul
 
 locale griffin en-US locale/en-US/
 
