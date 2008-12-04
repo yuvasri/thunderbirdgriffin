@@ -59,10 +59,10 @@ Griffin.Crm.prototype.validateOwnerShip = function(ownership){
 // Derived crm interfaces should override these with functions to do the right thing.
 
 // Should usually be the first function called before doing anything else.
-Griffin.Crm.prototype.login function(username, password){};
+Griffin.Crm.prototype.login = function(username, password){};
 
 // Returns an array of Griffin.Crm.FieldInfo objects describing the fields of an input object.
-Griffin.Crm.prototype.getFields = function(type); 
+Griffin.Crm.prototype.getFields = function(type){}; 
 
 // Return an array of ids of newly created object Ids. Must preserve ordering of inputs!
 Griffin.Crm.prototype.insert = function(type, arrRecords){}; 
@@ -133,8 +133,13 @@ Griffin.SupportedCRMs.Salesforce.getFields = function(obj){
     var hdr = this._getHeader();    
     var describeSObjectParams = new SOAPClientParameters();
     describeSObjectParams.add("sObjectType", obj);
-    var result = this.invoke("describeSObject", describeSObjectParams, hdr);
-    return result;
+    var ret = this.invoke("describeSObject", describeSObjectParams, hdr);
+    var fields = ret.describeSObjectResponse.result.fields;
+    var retArr = [];
+    for(var i = 0; i < fields.length; i++){
+        retArr.push(new Griffin.Crm.FieldInfo(fields[i].name, fields[i].label));
+    }
+    return retArr;
 };
 
 Griffin.SupportedCRMs.Salesforce._getHeader = function(){
