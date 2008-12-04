@@ -61,7 +61,6 @@
     <None Include="content\options.xul" />
     <None Include="content\overlay.xul" />
     <None Include="griffin.sqlite" />
-    <None Include="griffin.xpi" />
     <None Include="install NoUpdateUrl.rdf" />
     <None Include="install.rdf" />
     <None Include="locale\en-US\about.dtd" />
@@ -75,6 +74,7 @@
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="content\Contact.js" />
     <Content Include="content\CRMApi\CRMApi.js" />
     <Content Include="content\FieldMap.js" />
     <Content Include="content\Log.js" />

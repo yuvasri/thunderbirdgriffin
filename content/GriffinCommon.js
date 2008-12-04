@@ -17,26 +17,6 @@ if(!GriffinCommon || GriffinCommon == null){
             extensionId: "griffin@mpbsoftware.com",
             databasefile: "griffin.sqlite",
 
-            
-            // TODO: Unstink-ify the padLeft function (there must be a way!!).
-            padLeft: function(inString, padChar, targetLen){
-                while(inString.length < targetLen){
-                    inString = padChar + inString;
-                }
-                return inString;
-            },
-            
-            formatDateSfdc: function(inDate){
-                var year = GriffinCommon.padLeft(inDate.getUTCFullYear().toString(), "0", 4);
-                // Gotcha! getMonth runs from 0-11, so add one to result!
-                var month = GriffinCommon.padLeft((inDate.getUTCMonth() + 1).toString(), "0", 2); 
-                var day = GriffinCommon.padLeft(inDate.getUTCDate().toString(), "0", 2);
-                var hour = GriffinCommon.padLeft(inDate.getUTCHours().toString(), "0", 2);
-                var minute = GriffinCommon.padLeft(inDate.getUTCMinutes().toString(), "0", 2);
-                var second = GriffinCommon.padLeft(inDate.getUTCSeconds().toString(), "0", 2);
-                return year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second + "Z";
-            },
-            
             getCredentialsForUrl: function(url){
                 var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
                 var e = passwordManager.enumerator;

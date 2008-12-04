@@ -46,15 +46,6 @@ var GriffinMessage = {
         }
     },
     
-    getIdField: function(fieldMap){
-        for(var i = 0; i < fieldMap.length; i++){
-            if(fieldMap[i].sfdcField == "Id"){
-                return fieldMap[i].tbirdField;
-            }
-        }
-        return null;
-    },
-    
     // http://www.xulplanet.com/references/xpcomref/ifaces/nsIAbListener.html
     gfn_addressBookListener: {
     
@@ -64,57 +55,50 @@ var GriffinMessage = {
         saveCardsToCRM: function(){
            GriffinMessage.gfn_addressBookListener.timeout = null;
             if(!GriffinCommon.ensureLogin()) {
-                return;
+                return; // TODO: This means some contact synchs will be missed. Needs to be fixed by adding a sweep to beginSynchContacts?
             }
             
             var synchContactDir = Griffin.Prefs.getPrefValue("synchContactDir", "string");
+            var cards = GriffinMessage.gfn_addressBookListener.cardsToSave;
             if(synchContactDir == "BOTH" ||
                 synchContactDir == "TBIRD") {
                 var myObj = GriffinCommon.getCrmObjectFromTbirdObject("Contact");
                 var fieldMap = GriffinCommon.getFieldMap("Contact");
-                var cards = GriffinMessage.gfn_addressBookListener.cardsToSave;
                 for(var i = 0; i < cards.length; i++){
-                    var contact = GriffinMessage.gfn_addressBookListener.setContactVals(card, fieldMap);
-                }
-                var result;
-                if(contact.Id.length > 0){
-                    try{
-                        GriffinCommon.api.update(myObj, contact);
-                    }
-                    catch(e){
-                        Griffin.Logger.log("Failed to update contact." + e, true, false, true);
-                    }
-                }
-                else{
-                    try{
-                        var result = GriffinCommon.api.insert(myObj, contact);
-                        gEditCard.card[GriffinCard.getIdField(fieldMap)] = result[0];
-                    }
-                    catch(e){
-                        Griffin.Logger.log("Failed to insert contact." + e, true, false, true);
+                    var contact = new Griffin.Contact(cards[i].card);
+                    var crmContact = GriffinMessage.gfn_addressBookListener.setContactVals(contact, fieldMap);
+                    var id = GriffinCommon.api.upsert(myObj, crmContact);
+                    if(id != null){
+                        GriffinMessage.addressUnListen();
+                        // TODO: fix up the id mapping on card creation.
+                        cards[i].card.custom1 = id;
+                        cards[i].card.editCardToDatabase(cards[i].folder);
+                        GriffinMessage.addressListen();
                     }
                 }
             }
+            // Clear the array of cards to save.
+            cards.length = 0;
         },
     
         setContactVals: function(card, fieldMap){
             var contact = {};
             for(var i = 0; i < fieldMap.length; i++){
                 var currMapping = fieldMap[i];
-                contact[currMapping.sfdcField] = card[currMapping.tbirdField];
+                contact[currMapping.sfdcField] = card.getField(currMapping.tbirdField);
             }
             return contact;
         },
     
-        beginSaveCard: function(item){
+        beginSaveCard: function(card, folder){
             try{
-                item.QueryInterface(Components.interfaces.nsIAbCard);
+                card.QueryInterface(Components.interfaces.nsIAbCard);
             }
             catch(e){
                 // Not interested if it's not a card.
                 return;
             }
-            GriffinMessage.gfn_addressBookListener.cardsToSave.push(item);
+            GriffinMessage.gfn_addressBookListener.cardsToSave.push({card: card, folder: folder});
             var timeout = Griffin.Prefs.getPrefValue("messageBatchingTimeout", "int");
             if(GriffinMessage.gfn_addressBookListener.timeout != null){
                 window.clearTimeout(GriffinMessage.gfn_addressBookListener.timeout);
@@ -124,23 +108,13 @@ var GriffinMessage = {
     
         onItemAdded: function(parentDir, item ){
             Griffin.Logger.log("function: onItemAdded\nparentDir: " + parentDir + "\nitem: " + item, true);
+            GriffinMessage.gfn_addressBookListener.beginSaveCard(item, parentDir);
         },
         
+        // TODO: only save if a synch property changes, not just any property?
         onItemPropertyChanged: function(item, property, oldValue, newValue ){
             Griffin.Logger.log("function: onItemPropertyChanged\nitem: " + item + "\nproperty: " + property + "\noldValue: " + oldValue + "\nnewValue: " + newValue, true);
-            try{
-                item.QueryInterface(Components.interfaces.nsIAbCard);
-            }
-            catch(e){
-                // Not interested if it's not a card.
-                return;
-            }
-            GriffinMessage.gfn_addressBookListener.cardsToSave.push(item);
-            if(GriffinMessage.gfn_addressBookListener.timeout != null){
-                window.clearTimeout(GriffinMessage.gfn_addressBookListener.timeout);
-            }
-            var timeout = Griffin.Prefs.getPrefValue("messageBatchingTimeout", "int");
-            GriffinMessage.gfn_addressBookListener.timeout = window.setTimeout("GriffinMessage.gfn_addressBookListener.saveCardsToCRM();", timeout);
+            GriffinMessage.gfn_addressBookListener.beginSaveCard(item);
         },
         
         onItemRemoved: function(parentDir, item ){
@@ -214,7 +188,7 @@ var GriffinMessage = {
     
     addressUnListen: function(){
         var addrbookSession = Components.classes["@mozilla.org/addressbook/services/session;1"].getService().QueryInterface(Components.interfaces.nsIAddrBookSession);
-        addrbookSession.addAddressBookListener(GriffinMessage.gfn_addressBookListener, Components.interfaces.nsIAddrBookSession.all);
+        addrbookSession.removeAddressBookListener(GriffinMessage.gfn_addressBookListener);
     },
 
     onLoad: function(){
@@ -258,82 +232,12 @@ var GriffinMessage = {
     },
     
     // TODO: Globalise synch messages
-    getSFDCUpdatedContacts: function(lastUpdateDate, now, retreiveFields, fn_updateMethod){
-        // If more than 30 days since last synch, can't use getUpdated. Go for a full blown SOQL query.
-        var millisPerMinute = 60 * 1000;
-        var millisPerDay = 24 * 60 * millisPerMinute;
+    getCRMUpdatedContacts: function(lastUpdateDate, retreiveFields, fn_updateMethod){
         // TODO: Allow synch criteria other than ownership.
         var ownershipLimited = Griffin.Prefs.getPrefValue("synchContactOwnedBy", "string");
-        if((now.getTime() - lastUpdateDate.getTime()) > (30 * millisPerDay)){
-            // TODO: Globalise
-            Griffin.Logger.log("Synchronising contacts (SOQL)...", true, true, false);
-            // Use SOQL to get updated records, as too much time has passed to use getUpdated                
-            var soql = "SELECT " + retreiveFields + " FROM Contact WHERE LastModifiedDate > " + GriffinCommon.formatDateSfdc(lastUpdateDate);
-            var userInfo;
-            if(ownershipLimited == "ME"){
-                Griffin.Logger.log("Limiting SOQL to just my contacts.", true, false, true);
-                // TODO: make getUserInfo query asynch (somehow!);
-                userInfo = sforce.connection.getUserInfo();
-                soql += " AND OwnerId = '" + userInfo.Id + "'"; 
-            }
-            if(ownershipLimited == "MYTEAM"){
-                // TODO: Really should test this.
-                Griffin.Logger.log("Limiting SOQL to just my team.", true, false, true);
-                // TODO: make getUserInfo query asynch (somehow!);
-                userInfo = sforce.connection.getUserInfo();
-                var roleRes = sforce.connection.retrieve("UserRoleId", "User", [userInfo.Id]);
-                var teamRoles = [ roleRes.UserRoleId ];
-                for(var i = 0; i < teamRoles.length; i++){
-                    // TODO: Make roles query asynch (somehow!)
-                    var childRoles = sforce.connection.query("Select Id from UserRole Where ParentRoleId = '" + teamRoles[i] + "'");
-                    var res = childRoles.getArray("records");
-                    for(var j = 0; j < res.length; j++){
-                        teamRoles.push(res[i].Id);
-                    }
-                }
-                soql += " AND Owner.UserRoleId IN ( ";
-                for(var i = 0; i < teamRoles.length; i++){
-                    if(i > 0){
-                        soql += ","
-                    }
-                    soql += "'" + teamRoles[i] + "'";
-                }
-                soql += ")";
-            }
-            Griffin.Logger.log("querying salesforce using SOQL: " + soql, true, false, true);
-            // TODO: Security. SOQL injection possible?? Would probably only crash out, but worth checking.
-            var result = sforce.connection.query(soql, {
-                onSuccess: function(result){
-                    fn_updateMethod(result.getArray("records"));
-                    },
-                onFailure: function(err){
-                    Griffin.Logger.log(err, true, false, true);
-                },
-                timeout: 5000
-            });
-        }
-        else if ((now.getTime() - lastUpdateDate.getTime()) < millisPerMinute) {
-            Griffin.Logger.log("Less than a minute since last query. (Griffin Ignores you for 10 damage).", true, false, true);
-        }
-        else{
-            // TODO: filter results of getUpdated by Ownership criteria (is there any point in doing it then, esp given it's causing pain elsewhere?)
-            Griffin.Logger.log("Synchronising contacts (getUpdated)...", true, true, false);
-            sforce.connection.getUpdated("Contact", lastUpdateDate, now, {
-                onSuccess: function(result){
-                    sforce.connection.retrieve(retreiveFields, "Contact", result.getArray("ids"), {
-                        onSuccess: fn_updateMethod,
-                        onFailure:  function(err){
-                            Griffin.Logger.log(err, true, false, true);
-                        },
-                        timeout: 5000
-                    });
-                },
-                onFailure: function(err){
-                    Griffin.Logger.log(err, true, false, true);
-                },
-                timeout: 5000
-            });
-        }
+        var crmObj = GriffinCommon.getCrmObjectFromTbirdObject("Contact");
+        var contacts = GriffinCommon.api.getRecords(crmObj, lastUpdateDate, ownershipLimited, retreiveFields);
+        fn_updateMethod(contacts);
     },
     
     beginSynchContacts: function(){
@@ -362,8 +266,7 @@ var GriffinMessage = {
             }
             var lastUpdateDate = new Date();
             lastUpdateDate.setTime(prefTime);
-            var now = new Date();
-            GriffinMessage.getSFDCUpdatedContacts(lastUpdateDate, now, retreiveFields, GriffinMessage.updateABFromContacts);            
+            GriffinMessage.getCRMUpdatedContacts(lastUpdateDate, retreiveFields, GriffinMessage.updateABFromContacts);            
         }
     },
     
