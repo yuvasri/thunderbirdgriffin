@@ -49,7 +49,7 @@ var GriffinMessage = {
     // http://www.xulplanet.com/references/xpcomref/ifaces/nsIAbListener.html
     gfn_addressBookListener: {
     
-        timeout: null,     
+        timeout: null,
         cardsToSave: [],
     
         saveCardsToCRM: function(){
