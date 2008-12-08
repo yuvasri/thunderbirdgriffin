@@ -26,9 +26,6 @@ Griffin.Crm = function(ns, crmName){
 
 Griffin.Crm.prototype.invoke = function(method, params, hdrParams, callback, action){
     var asynch = callback && callback != null;
-    if(!hdrParams){
-        hdrParams = new SOAPClientParameters();
-    }
     if(!action){
         action = "POST";
     }
@@ -272,13 +269,11 @@ Griffin.SupportedCRMs.Zoho.getFields = function(obj){
     finally{
         this.endpoint = prevEndpoint;
     }
-    if(retVal.result){
-        var retArr = [];
-        var labels = this._ensureArray(retVal.result[obj].row.fieldlabel);
-        for(var i = 0; i < labels.length; i++)
-            retArr.push(new Griffin.Crm.FieldInfo(labels[i].value, labels[i].value));
-        return retArr;
-    }
+    var retArr = [];
+    var labels = this._ensureArray(retVal.result[obj].row.fieldlabel);
+    for(var i = 0; i < labels.length; i++)
+        retArr.push(new Griffin.Crm.FieldInfo(labels[i].value, labels[i].value));
+    return retArr;
 };
 
 Griffin.SupportedCRMs.Zoho.insert = function(type, objects){
@@ -478,8 +473,7 @@ var SOAPClient = {
 	    if(action == "POST" && parameters){
 	        sr =    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + 
 	                "<soap:Envelope " + (ns ? "xmlns:myns=\"" + ns + "\" " : "") + "xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
-			        "<soap:Header>" + headerParameters.toXml(ns ? "myns" : undefined) + 
-			        "</soap:Header>" +
+			        (headerParameters ? ("<soap:Header>" + headerParameters.toXml(ns ? "myns" : undefined) + "</soap:Header>") : "") +
 			        "<soap:Body>" +
 			        "<" + (ns ? "myns:" : "") + method + ">" +
 			        parameters.toXml(ns ? "myns" : undefined) +

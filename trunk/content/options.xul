@@ -33,7 +33,7 @@
         <vbox flex="1">
           <groupbox>
             <caption label="&general.login;"></caption>
-            <menulist id="mlSelectedCRM">
+            <menulist id="mlSelectedCRM" oncommand="return GriffinOptions.toggleCrm();">
               <menupopup id="mpSelectedCrm">
                 <menuitem id="miCrmSalesforce" label="Salesforce" value="Salesforce"/>
                 <menuitem id="miCrmZoho" label="Zoho" value="Zoho"/>

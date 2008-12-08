@@ -85,7 +85,7 @@ var GriffinMessage = {
             var contact = {};
             for(var i = 0; i < fieldMap.length; i++){
                 var currMapping = fieldMap[i];
-                contact[currMapping.sfdcField] = card.getField(currMapping.tbirdField);
+                contact[currMapping.crmField] = card.getField(currMapping.tbirdField);
             }
             return contact;
         },
@@ -215,7 +215,7 @@ var GriffinMessage = {
             var task = {}; 
             for(var currFldIdx = 0; currFldIdx < taskMap.length; currFldIdx++){
                 var currFldMap = taskMap[currFldIdx];
-                task[currFldMap.sfdcField] = msg.getField(currFldMap.tbirdField);
+                task[currFldMap.crmField] = msg.getField(currFldMap.tbirdField);
             }
             griffinMessages.push(msg);
             tasks.push(task);
@@ -257,7 +257,7 @@ var GriffinMessage = {
             for(var i = 0; i < fieldMap.length; i++){
                 if(i > 0)
                     retreiveFields += ",";
-                retreiveFields += fieldMap[i].sfdcField;
+                retreiveFields += fieldMap[i].crmField;
             }
             
             var prefTime = Griffin.Prefs.getPrefValue("lastSynch", "string");
@@ -321,7 +321,7 @@ var GriffinMessage = {
     setProps: function(card, fieldMap, contact){
         for(var i = 0; i < fieldMap.length; i++){
             var tbirdFld = fieldMap[i].tbirdField;
-            var sfdcFld = fieldMap[i].sfdcField;
+            var sfdcFld = fieldMap[i].crmField;
             card[tbirdFld] = contact[sfdcFld];
         }
     },

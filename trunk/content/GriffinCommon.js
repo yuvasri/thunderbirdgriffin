@@ -66,14 +66,14 @@ if(!GriffinCommon || GriffinCommon == null){
             
             getFieldMap: function(obj){    
                 var connection = GriffinCommon.getDbConnection();
-                var statement = connection.createStatement("SELECT tBirdField, sfdcField, strength FROM FieldMap fm, TBirdFields t, CRM c WHERE c.CRMName = '" + GriffinCommon.api.crmName + "' AND t.fieldId = fm.fieldId AND t.object = '" + obj + "'");
+                var statement = connection.createStatement("SELECT tBirdField, crmField, strength FROM FieldMap fm, TBirdFields t, CRM c WHERE c.CRMName = '" + GriffinCommon.api.crmName + "' AND t.fieldId = fm.fieldId AND t.object = '" + obj + "'");
                 var fieldMap = [];
                 try{
                     while(statement.executeStep()){
                         var s_tBirdField = statement.getUTF8String(0);
-                        var s_sfdcField = statement.getUTF8String(1);
+                        var s_crmField = statement.getUTF8String(1);
                         var s_strength = statement.getUTF8String(2);
-                        fieldMap.push( { tbirdField: s_tBirdField, sfdcField: s_sfdcField, strength: s_strength});
+                        fieldMap.push( { tbirdField: s_tBirdField, crmField: s_crmField, strength: s_strength});
                     }
                     return fieldMap;
                 }
@@ -120,7 +120,7 @@ if(!GriffinCommon || GriffinCommon == null){
                     if(currMapIdx > 0)
                         queryString += ",";
                     var currMap = fieldMaps[currMapIdx];
-                    queryString += "(" + currMap.tbirdField + ",c," + contact[currMap.sfdcField] + ")"
+                    queryString += "(" + currMap.tbirdField + ",c," + contact[currMap.crmField] + ")"
                 }
                 queryString += ")";
                 */
@@ -192,7 +192,7 @@ if(!GriffinCommon || GriffinCommon == null){
                 var str = 0;
                 for(var mapIdx = 0; mapIdx < fieldMaps.length; mapIdx++){
                     var currMap = fieldMaps[mapIdx];
-                    if(contact[currMap.sfdcField] == candidateCard[currMap.tbirdField]){
+                    if(contact[currMap.crmField] == candidateCard[currMap.tbirdField]){
                         str += Number(currMap.strength);
                     }
                 }

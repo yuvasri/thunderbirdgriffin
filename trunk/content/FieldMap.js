@@ -3,8 +3,8 @@ if (!Griffin) {
     Griffin = {};
 }
 
-Griffin.FieldMap = function(tbirdField, sfdcField, strength){
+Griffin.FieldMap = function(tbirdField, crmField, strength){
     this.tbirdField = tbirdField;
-    this.sfdcField = sfdcField;
+    this.crmField = crmField;
     this.strength = strength;
 }
