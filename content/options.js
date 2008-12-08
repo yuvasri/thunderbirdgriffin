@@ -20,9 +20,30 @@ var GriffinOptions = {
         }
     }, 
     
+    toggleCrm: function() {
+        if(window.confirm("This will immediately change your selected crm system. Are you sure?")){
+            var selCrm = document.getElementById("mlSelectedCRM").selectedItem.value;
+            Griffin.Prefs.setPrefValue("crmSystem", selCrm, "string");
+            GriffinCommon.api = Griffin.CrmApi.GetApi(selCrm);
+            GriffinOptions.setLoginParams(selCrm);
+            GriffinOptions.initContactPanel();
+            GriffinOptions.initTaskPanel();
+            return true;
+        }
+        else{            
+            var selCrm = Griffin.Prefs.getPrefValue("crmSystem", "string");
+            document.getElementById("mlSelectedCRM").selectedItem = document.getElementById("miCrm" + selCrm);
+            return false;
+        }
+    },
+    
     initGeneralPanel: function(){
         var selCrm = Griffin.Prefs.getPrefValue("crmSystem", "string");
         document.getElementById("mlSelectedCRM").selectedItem = document.getElementById("miCrm" + selCrm);
+        GriffinOptions.setLoginParams(selCrm);
+    },
+    
+    setLoginParams: function(selCrm){        
         var url = Griffin.Prefs.getPrefValue(selCrm + ".serverUrl", "string");
         var credentials = GriffinCommon.getCredentialsForUrl(url);
         document.getElementById("serverUrl").value = url;
@@ -35,13 +56,13 @@ var GriffinOptions = {
             
     initContactPanel: function(){
     
-        // Contact field mapping
-        GriffinOptions.startAppendFieldMap("Contact", "cnctMapping");
         // Other contact options
         document.getElementById("synchDeleted").checked = Griffin.Prefs.getPrefValue("propogateDeletions", "bool");
         document.getElementById("synchDir").selectedItem = document.getElementById("synchDir_" + Griffin.Prefs.getPrefValue("synchContactDir", "string"));
         document.getElementById("synchOwn").selectedItem = document.getElementById("synchOwn_" + Griffin.Prefs.getPrefValue("synchContactOwnedBy", "string"));
         document.getElementById("synchFreq").value = Griffin.Prefs.getPrefValue("synchContactFrequency", "int");
+        // Contact field mapping
+        GriffinOptions.startAppendFieldMap("Contact", "cnctMapping");
     },   
     
     initTaskPanel: function(){
@@ -108,9 +129,6 @@ var GriffinOptions = {
     
     // TODO: Need to get back to asynch at getFieldsDropDown, after change of api.
     getFieldsDropDown: function(obj){
-        if(GriffinOptions["fieldsDrop_" + obj]){
-            return;
-        }
         if(!GriffinCommon.ensureLogin()){
             GriffinOptions["fieldsDrop_" + obj] = document.createElement("textbox");
         }
@@ -213,7 +231,7 @@ var GriffinOptions = {
     updateFieldMap: function(obj){    
         var crmId = GriffinCommon.executeScalar("SELECT CRMId FROM CRM Where CRMName = '" + GriffinCommon.api.crmName + "'");
         var mDBConn = GriffinCommon.getDbConnection();
-        var rep = mDBConn.createStatement("Replace Into FieldMap (fieldId, sfdcField, strength, CRMId) Values (?1, ?2, ?3, " + crmId + ")");
+        var rep = mDBConn.createStatement("Replace Into FieldMap (fieldId, crmField, strength, CRMId) Values (?1, ?2, ?3, " + crmId + ")");
         var del = mDBConn.createStatement("Delete From FieldMap Where fieldId = ?1 And CRMId = " + crmId);
         try{
             var props = GriffinOptions.tbirdProps(obj);
@@ -243,7 +261,13 @@ var GriffinOptions = {
         }
     },
     
-    appendFieldMap: function(obj, id){        
+    startAppendFieldMap: function(obj, id){
+        GriffinOptions["fieldsDrop_" + obj] = undefined;
+        GriffinOptions.getFieldsDropDown(obj);
+        GriffinOptions.appendFieldMap(obj, id);
+    },
+    
+    appendFieldMap: function(obj, id){
         if(!GriffinOptions["fieldsDrop_" + obj]){
             window.setTimeout("GriffinOptions.appendFieldMap('" + obj + "', '" + id + "');", 100);
             return;
@@ -252,7 +276,7 @@ var GriffinOptions = {
         // Contact field mapping
         var vBox = document.getElementById(id);
         var mDBConn = GriffinCommon.getDbConnection();
-        var statement = mDBConn.createStatement("SELECT f.sfdcField, f.strength FROM FieldMap f, CRM c WHERE fieldId = ?1 And c.CRMId = f.CRMId And c.CRMName = '" + GriffinCommon.api.crmName + "'");
+        var statement = mDBConn.createStatement("SELECT f.crmField, f.strength FROM FieldMap f, CRM c WHERE fieldId = ?1 And c.CRMId = f.CRMId And c.CRMName = '" + GriffinCommon.api.crmName + "'");
         var properties = GriffinOptions.tbirdProps(obj);
         try{
             for(var i = 0; i < properties.length; i++){
@@ -268,18 +292,18 @@ var GriffinOptions = {
                 label.appendChild(labelText);
                 spacer.setAttribute("flex", "1");
                 
-                var sfdcField = "";
+                var crmField = "";
                 var strength = "";
                 statement.bindInt32Parameter(0, currCardProp.fieldId);
                 if(statement.executeStep()){
-                    sfdcField = statement.getString(0);
+                    crmField = statement.getString(0);
                     strength = statement.getDouble(1);
                 }
                 statement.reset();
                 
                 // Field setup
                 ddlField.id = "fld_" + currCardProp.fieldId;
-                GriffinOptions.setSelected(ddlField, sfdcField);
+                GriffinOptions.setSelected(ddlField, crmField);
                 
                 // Strength setup
                 txtStrength.id = "str_" + currCardProp.fieldId;
@@ -289,17 +313,19 @@ var GriffinOptions = {
                 li.appendChild(spacer);
                 li.appendChild(ddlField);
                 li.appendChild(txtStrength);
-                vBox.appendChild(li);
+                var oldNode = document.getElementById("li_" + currCardProp.fieldId);          
+                li.setAttribute("id", "li_" + currCardProp.fieldId);
+                if(oldNode == null){
+                    vBox.appendChild(li);
+                }
+                else{
+                    vBox.replaceChild(li, oldNode);
+                }
             }
         } finally {
           statement.reset();
         }
         vBox.setAttribute("class", "");
-    },
-    
-    startAppendFieldMap: function(obj, id){
-        GriffinOptions.getFieldsDropDown(obj);
-        GriffinOptions.appendFieldMap(obj, id);
     },
     
     savePrefs: function(){
