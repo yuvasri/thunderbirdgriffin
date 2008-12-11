@@ -236,8 +236,7 @@ var GriffinMessage = {
         // TODO: Allow synch criteria other than ownership.
         var ownershipLimited = Griffin.Prefs.getPrefValue("synchContactOwnedBy", "string");
         var crmObj = GriffinCommon.getCrmObjectFromTbirdObject("Contact");
-        var contacts = GriffinCommon.api.getRecords(crmObj, lastUpdateDate, ownershipLimited, retreiveFields);
-        fn_updateMethod(contacts);
+        var contacts = GriffinCommon.api.getRecords(crmObj, lastUpdateDate, ownershipLimited, retreiveFields, fn_updateMethod);
     },
     
     beginSynchContacts: function(){
@@ -279,13 +278,14 @@ var GriffinMessage = {
         var abDirUri = "moz-abmdbdirectory://abook.mab";
         var defaultDirectory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(Components.interfaces.nsIAbDirectory);
         var fieldMap = GriffinCommon.getFieldMap("Contact");
+        var candidates = GriffinCommon.getCandidateMatches();
         for(var i = 0; i < contacts.length; i++){
             Griffin.Logger.log("Synchronising updates (" + (i + 1) + "/" + contacts.length + ").", true, true, false);
             Griffin.Logger.log("Id: " + contacts[i].Id, true, false, true);
             window.setTimeout("document.getElementById('synch_progress').value = " + ((i + 1) * 100 / contacts.length), 0);
             var currContact = contacts[i];
             
-            var matchObj = GriffinCommon.getCardForContact(currContact, fieldMap);
+            var matchObj = GriffinCommon.getBestMatch(fieldMap, candidates, currContact);
             // Should have found the matchObj by now otherwise we're adding a new card.
             var newCard = (matchObj == null);
             var cardMatch = null;
@@ -321,8 +321,8 @@ var GriffinMessage = {
     setProps: function(card, fieldMap, contact){
         for(var i = 0; i < fieldMap.length; i++){
             var tbirdFld = fieldMap[i].tbirdField;
-            var sfdcFld = fieldMap[i].crmField;
-            card[tbirdFld] = contact[sfdcFld];
+            var crmFld = fieldMap[i].crmField;
+            card[tbirdFld] = contact[crmFld];
         }
     },
 

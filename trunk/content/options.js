@@ -134,27 +134,28 @@ var GriffinOptions = {
         }
         try{
             var myObj = GriffinCommon.getCrmObjectFromTbirdObject(obj);
-            var fields = GriffinCommon.api.getFields(myObj);
-            var menulist = document.createElement("menulist");
-            //TODO: Find a slick way of making constant values be inserted into crm / tbird? Make use of editable menulists?? Could change to 2 drop downs instead of current static list + drop down? (nice idea :-)
-            //TODO: Enforce one-to-one relationship for field mappings.
-            //menulist.setAttribute("editable", "true");
-            var menupopup = document.createElement("menupopup");
-            menulist.appendChild(menupopup);
-            var menuitem = document.createElement("menuitem");
-            menuitem.setAttribute("label", "Not Mapped"); // Globalise!
-            menuitem.setAttribute("value", "");
-            menupopup.appendChild(menuitem);
-            for(var i = 0; i < fields.length; i++){
-                var currField = fields[i];
+            var fields = GriffinCommon.api.getFields(myObj, function(fields){                
+                var menulist = document.createElement("menulist");
+                //TODO: Find a slick way of making constant values be inserted into crm / tbird? Make use of editable menulists?? Could change to 2 drop downs instead of current static list + drop down? (nice idea :-)
+                //TODO: Enforce one-to-one relationship for field mappings.
+                //menulist.setAttribute("editable", "true");
+                var menupopup = document.createElement("menupopup");
+                menulist.appendChild(menupopup);
                 var menuitem = document.createElement("menuitem");
-                menuitem.setAttribute("label", currField.label);
-                menuitem.setAttribute("value", currField.name);
+                menuitem.setAttribute("label", "Not Mapped"); // Globalise!
+                menuitem.setAttribute("value", "");
                 menupopup.appendChild(menuitem);
-            }
-            GriffinOptions["fieldsDrop_" + obj] = menulist;
+                for(var i = 0; i < fields.length; i++){
+                    var currField = fields[i];
+                    var menuitem = document.createElement("menuitem");
+                    menuitem.setAttribute("label", currField.label);
+                    menuitem.setAttribute("value", currField.name);
+                    menupopup.appendChild(menuitem);
+                }
+                GriffinOptions["fieldsDrop_" + obj] = menulist;
+            });
         }
-        catch(e){            
+        catch(e){
             Griffin.Logger.log(e, true, false, true);
             GriffinOptions["fieldsDrop_" + obj] = document.createElement("textbox");
         }

@@ -13,7 +13,7 @@ if(!GriffinCommon || GriffinCommon == null){
     if(!GriffinCommon || GriffinCommon == null){
         // TODO: Cache varous XPCOM classes used in GriffinCommon? Performance?
 
-        var GriffinCommon = {
+        GriffinCommon = {
             extensionId: "griffin@mpbsoftware.com",
             databasefile: "griffin.sqlite",
 
@@ -66,14 +66,14 @@ if(!GriffinCommon || GriffinCommon == null){
             
             getFieldMap: function(obj){    
                 var connection = GriffinCommon.getDbConnection();
-                var statement = connection.createStatement("SELECT tBirdField, crmField, strength FROM FieldMap fm, TBirdFields t, CRM c WHERE c.CRMName = '" + GriffinCommon.api.crmName + "' AND t.fieldId = fm.fieldId AND t.object = '" + obj + "'");
+                var statement = connection.createStatement("SELECT tBirdField, crmField, strength FROM FieldMap fm, TBirdFields t, CRM c WHERE fm.CRMId = c.CRMId AND c.CRMName = '" + GriffinCommon.api.crmName + "' AND t.fieldId = fm.fieldId AND t.object = '" + obj + "'");
                 var fieldMap = [];
                 try{
                     while(statement.executeStep()){
                         var s_tBirdField = statement.getUTF8String(0);
                         var s_crmField = statement.getUTF8String(1);
                         var s_strength = statement.getUTF8String(2);
-                        fieldMap.push( { tbirdField: s_tBirdField, crmField: s_crmField, strength: s_strength});
+                        fieldMap.push( new Griffin.FieldMap(s_tBirdField, s_crmField, s_strength));
                     }
                     return fieldMap;
                 }
@@ -111,8 +111,7 @@ if(!GriffinCommon || GriffinCommon == null){
                 return null;
             },
             
-            // TODO: Perhaps this should be somewhere else? Called on both addMessage, and synchContact methods. Some kind of OO class I imagine?
-            getCardForContact: function(contact, fieldMaps){
+            getCandidateMatches: function(contact, fieldMaps){
                 // TODO: Limit getCardForContact search so that we only get getBestMatch on relevant cards (ie ones that match on at least one field). Partially implemented, see commented out code.
                 /*
                 var queryString = "?(or";
@@ -160,8 +159,8 @@ if(!GriffinCommon || GriffinCommon == null){
                             keepGoing = 0;
                         }
                     }
-                }
-                return GriffinCommon.getBestMatch(fieldMaps, candidates, contact);
+                 }
+                 return candidates;
             },
             
             // TODO: Perhaps getBestMatch should be somewhere else? See getCardForContact
