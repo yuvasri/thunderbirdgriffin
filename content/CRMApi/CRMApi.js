@@ -56,6 +56,8 @@ Griffin.Crm.prototype._padLeft = function(inString, padChar, targetLen){
 };
 
 Griffin.Crm.prototype._ensureArray = function(obj){
+    if(obj == undefined)
+        return [];
     if(obj instanceof Array)
         return obj;
     else 
@@ -80,7 +82,7 @@ Griffin.Crm.prototype.formatDate = function(inDate){
 Griffin.Crm.prototype.login = function(username, password){};
 
 // Returns an array of Griffin.Crm.FieldInfo objects describing the fields of an input object.
-Griffin.Crm.prototype.getFields = function(type){}; 
+Griffin.Crm.prototype.getFields = function(type, callback){}; 
 
 // Return an array of ids of newly created object Ids. Must preserve ordering of inputs!
 Griffin.Crm.prototype.insert = function(type, arrRecords){}; 
@@ -90,7 +92,7 @@ Griffin.Crm.prototype.insert = function(type, arrRecords){};
 Griffin.Crm.prototype.upsert = function(type, record){};
  
 // Returns an array of objects with appropriate fields set. More fields may be set than specified in fields parameter.
-Griffin.Crm.prototype.getRecords = function(type, modifiedSince, ownership, fields){}; 
+Griffin.Crm.prototype.getRecords = function(type, modifiedSince, ownership, fields, callback){}; 
 
 // An array of FieldInfo objects should be returned from the getFields call.
 Griffin.Crm.FieldInfo = function(name, label){
@@ -106,7 +108,7 @@ Griffin.SupportedCRMs.Salesforce.login = function (username, password){
     var params = new SOAPClientParameters();
     params.add("username", username);
     params.add("password", password);
-    var result = this.invoke("login", params);
+    var result = this.invoke("login", params, undefined);
     this.sessionId = result.loginResponse.result.sessionId;
     this.endpoint = result.loginResponse.result.serverUrl;
     // userId useful for ownership limited queries, so save for later.
@@ -132,31 +134,66 @@ Griffin.SupportedCRMs.Salesforce.insert = function(type, sObjects){
     return result.createResponse.result.success;
 };
 
-Griffin.SupportedCRMs.Salesforce.getFields = function(obj){
+Griffin.SupportedCRMs.Salesforce.getFields = function(obj, callback){
     var hdr = this._getHeader();    
     var describeSObjectParams = new SOAPClientParameters();
     describeSObjectParams.add("sObjectType", obj);
-    var ret = this.invoke("describeSObject", describeSObjectParams, hdr);
-    var fields = ret.describeSObjectResponse.result.fields;
-    var retArr = [];
-    for(var i = 0; i < fields.length; i++){
-        retArr.push(new Griffin.Crm.FieldInfo(fields[i].name, fields[i].label));
+    this.invoke("describeSObject", describeSObjectParams, hdr, {
+        onSuccess: function(ret){
+            var fields = ret.describeSObjectResponse.result.fields;
+            var retArr = [];
+            for(var i = 0; i < fields.length; i++){
+                retArr.push(new Griffin.Crm.FieldInfo(fields[i].name, fields[i].label));
+            }
+            callback(retArr);
+        },
+        onFailure: function(err){
+            throw err;
+        }
     }
-    return retArr;
+    );
 };
 
-Griffin.SupportedCRMs.Salesforce.getRecords = function(object, modifiedSince, ownership, fields){
-    var soql = "SELECT " + retreiveFields + " FROM " + object + " WHERE LastModifiedDate > " + this.formatDate(modifiedSince);
+Griffin.SupportedCRMs.Salesforce.getRecords = function(object, modifiedSince, ownership, fields, callback){
+    var soql = "SELECT " + fields + " FROM " + object + " WHERE LastModifiedDate > " + this.formatDate(modifiedSince);
     var userInfo;
-    if(ownershipLimited == "ME")
+    if(ownership == "ME")
         soql += " AND OwnerId = '" + this.userId + "'";
     var hdr = this._getHeader();
     var params = new SOAPClientParameters();
     params.add("queryString", soql);
-    var retVal = this.invoke("query", params, hdr);
-    // TODO: go through pain of queryMore interface. It's a pain in the arse with C#, so it'll be hellish with a custom API.
-    var records = retVal.queryResponse.result.records;
-    return this._ensureArray(records);
+    var retVal = this.invoke("query", params, hdr, {
+        onSuccess: function(retVal){            
+            var records = [];
+            var fieldsArr = fields.split(",");
+            do{
+                var done = retVal.queryResponse.result.done;
+                var returnedRecords = GriffinCommon.api._ensureArray(retVal.queryResponse.result.records);
+                for(var i = 0; i < returnedRecords.length; i++){
+                    var currRec =  returnedRecords[i];
+                    var obj = {};
+                    for(var fldIdx = 0; fldIdx < fieldsArr.length; fldIdx++){
+                        var currFld = fieldsArr[fldIdx];
+                        var currFldVal = currRec["sf:" + currFld];
+                        if(currRec["sf:" + currFld] instanceof Array)
+                            obj[currFld] = currFldVal[0];                    
+                        else
+                            obj[currFld] = currFldVal;
+                    }
+                    records.push(obj);
+                }
+                if(!done){
+                    params = new SOAPClientParameters();
+                    params.add("queryLocator", retVal.queryResponse.result.queryLocator);
+                    retVal = this.invoke("queryMore", params, hdr);            
+                }
+            } while (!done);
+            callback(records);
+        },
+        onFailure: function(err){
+            throw err;
+        }
+    });
 };
 
 Griffin.SupportedCRMs.Salesforce._getHeader = function(){
@@ -180,17 +217,14 @@ Griffin.SupportedCRMs.Zoho.login = function(username, apiKey){
 };
 
 // TODO: Zoho.getFields cleanup.
-Griffin.SupportedCRMs.Zoho.getFields = function(obj){    
+Griffin.SupportedCRMs.Zoho.getFields = function(obj, callback){    
     if(!this.isLoggedIn){
         throw "login call must have been performed prior to getting fields.";
     }
     var prevEndpoint = this.endpoint;
     this.endpoint = this.endpoint + obj + "/getAllRecords" + this._loginQueryString() + "&fromIndex=1&toIndex=1";
     var retVal;
-    try{
-        retVal = this.invoke(undefined, undefined, undefined, undefined, "GET");
-    }
-    catch(e){
+    var handleErr = function(e){
         if(e.code && e.code == 4832){
             switch(obj){
                 case "Contacts": return [
@@ -265,15 +299,25 @@ Griffin.SupportedCRMs.Zoho.getFields = function(obj){
             // Unknown error code. Upchuck.
             throw e;
         }
-    } // End catch
+    };
+    try{
+        this.invoke(undefined, undefined, undefined, {
+            onSuccess: function(retVal){
+                var retArr = [];
+                var labels = GriffinCommon.api._ensureArray(retVal.result[obj].row.fieldlabel);
+                for(var i = 0; i < labels.length; i++)
+                    retArr.push(new Griffin.Crm.FieldInfo(labels[i].value, labels[i].value));
+                callback(retArr);
+            },
+            onFailure: function(err){
+                callback(handleErr(err));
+            }
+        }, "GET");
+    }
     finally{
         this.endpoint = prevEndpoint;
     }
-    var retArr = [];
-    var labels = this._ensureArray(retVal.result[obj].row.fieldlabel);
-    for(var i = 0; i < labels.length; i++)
-        retArr.push(new Griffin.Crm.FieldInfo(labels[i].value, labels[i].value));
-    return retArr;
+    return null;
 };
 
 Griffin.SupportedCRMs.Zoho.insert = function(type, objects){
@@ -331,42 +375,43 @@ Griffin.SupportedCRMs.Zoho.upsert = function(object, record){
 };
 
 // NB Fields parameter is ignored.
-Griffin.SupportedCRMs.Zoho.getRecords = function(object, modifiedSince, ownership){
+Griffin.SupportedCRMs.Zoho.getRecords = function(object, modifiedSince, ownership, fields, callback){
     if(!this.isLoggedIn){
         throw "login call must have been performed prior to querying records.";
     }    
     var prevEndpoint = this.endpoint;
     this.endpoint = this.endpoint + object + "/" + (ownership == "MY" ? "getMyRecords" : "getAllRecords" ) + this._loginQueryString() + "&lastModifiedTime=" + encodeURIComponent(this.formatDate(modifiedSince));
-    var retArr = [];
-    var retVal;
     try{
-        retVal = this.invoke(undefined, undefined, undefined, undefined, "GET");
-    }
-    catch(e){
-        if(e.code && e.code == 4832){
-            // No data... not really an error as such.
-            return retArr;
-        }
-        else {
-            // Genuine error.
-            throw e;
-        }
+        this.invoke(undefined, undefined, undefined, {
+            onSuccess: function(retVal){            
+                var rows = GriffinCommon.api._ensureArray(retVal.result[object].row);
+                for(var i = 0; i < rows.length; i++){            
+                    var obj = {};
+                    var labels = GriffinCommon.api._ensureArray(rows[i].fieldlabel);
+                    for(var j = 0; j < labels.length; j++){
+                        var currField = labels[j];
+                        var val = currField.innerText ? currField.innerText : null;
+                        obj[currField.value] = (val == "null" ? null : val);
+                    }
+                    retArr.push(obj);
+                }
+                callback(retArr);
+            },
+            onFailure: function(e){               
+                if(e.code && e.code == 4832){
+                    // No data... not really an error as such.
+                    callback([]);
+                }
+                else {
+                    // Genuine error.
+                    throw e;
+                } 
+            }
+        }, "GET");
     }
     finally{
         this.endpoint = prevEndpoint;
     }
-    var rows = this._ensureArray(retVal.result[object].row);
-    for(var i = 0; i < rows.length; i++){            
-        var obj = {};
-        var labels = this._ensureArray(rows[i].fieldlabel);
-        for(var j = 0; j < labels.length; j++){
-            var currField = labels[j];
-            var val = currField.innerText ? currField.innerText : null;
-            obj[currField.value] = (val == "null" ? null : val);
-        }
-        retArr.push(obj);
-    }
-    return retArr;
 };
 
 Griffin.SupportedCRMs.Zoho.formatDate = function(inDate){
@@ -501,25 +546,45 @@ var SOAPClient = {
 	    }
 	    xmlHttp.send(sr);
 	    if (!async)
-		    return SOAPClient.parseResult(xmlHttp, method, callback );
+		    return SOAPClient.parseResult(xmlHttp, method);
 		return null;
     },
    
     parseResult: function(xmlHttp, method, callback){
         Griffin.Logger.log("CRMApi.js\r\n" + xmlHttp.responseText, true);
         var errs = xmlHttp.responseXML.getElementsByTagName("Fault"); // SFDC uses this
-        if(errs.length > 0)
-            throw SOAPClient.DOM2Obj(errs[0]);
-        errs = xmlHttp.responseXML.getElementsByTagName("error"); // Zoho uses this
-        if(errs.length > 0)
-            throw SOAPClient.DOM2Obj(errs[0]);
+        if(errs.length == 0)
+            errs = xmlHttp.responseXML.getElementsByTagName("error"); // Zoho uses this
+        if(errs.length > 0){
+            var errObj = SOAPClient.DOM2Obj(errs[0]);
+            if(callback){
+                callback.onFailure(errObj);        
+                return null;
+            }
+            else
+                return errObj;
+        }       
+          
         var response = xmlHttp.responseXML.getElementsByTagName("Body"); // SFDC uses this
-        if(response.length > 0)
-            return SOAPClient.DOM2Obj(response[0]);
-        response = xmlHttp.responseXML.getElementsByTagName("response"); // Zoho uses this
-        if(response.length > 0)
-            return SOAPClient.DOM2Obj(response[0]);
-        throw "Could not parse return message!"
+        if(response.length == 0)
+            response = xmlHttp.responseXML.getElementsByTagName("response"); // Zoho uses this
+        if(response.length == 0) {
+            var err = "Could not parse return message, no body Tag recognised.";
+            if(callback){
+                callback.onFailure(err);
+                return null;
+            }
+            else{
+                throw err;
+            }
+        }
+        var retVal = SOAPClient.DOM2Obj(response[0]);
+        if(callback){
+            callback.onSuccess(retVal);
+            return null;
+        }
+        else
+            return retVal;
     },
     
     appendResult: function(obj, nodeName, nodeValue){        
