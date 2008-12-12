@@ -2,7 +2,7 @@ var GriffinLogin = {
     login: function(){
         var username = document.getElementById("username").value;
         var password = document.getElementById("password").value;
-        var url = document.getElementById("url").value;
+        var url = document.getElementById("serverUrl").value;
         try{
             GriffinCommon.api.endpoint = url;
             GriffinCommon.api.login(username, password);
@@ -31,8 +31,41 @@ var GriffinLogin = {
        }
     },
     
+    setLoginParams: function(selCrm){        
+        var url = Griffin.Prefs.getPrefValue(selCrm + ".serverUrl", "string");
+        var credentials = GriffinCommon.getCredentialsForUrl(url);
+        document.getElementById("serverUrl").value = url;
+        if(credentials != null){
+            document.getElementById("username").value = credentials.user;
+            document.getElementById("password").value = credentials.password;
+            document.getElementById("rememberMe").checked = true;
+        }
+        else{
+            document.getElementById("username").value = "";
+            document.getElementById("password").value = "";
+            document.getElementById("rememberMe").checked = false;
+        }
+    },
+    
+    toggleCrm: function() {
+        if(window.confirm("This will immediately change your selected crm system. Are you sure?")){
+            var selCrm = document.getElementById("mlSelectedCRM").selectedItem.value;
+            Griffin.Prefs.setPrefValue("crmSystem", selCrm, "string");
+            GriffinCommon.api = Griffin.CrmApi.GetApi(selCrm);
+            GriffinLogin.setLoginParams(selCrm);
+            return true;
+        }
+        else{            
+            var selCrm = Griffin.Prefs.getPrefValue("crmSystem", "string");
+            document.getElementById("mlSelectedCRM").selectedItem = document.getElementById("miCrm" + selCrm);
+            return false;
+        }
+    },
+    
     onLoad: function(){
-        document.getElementById("url").value = GriffinCommon.api.endpoint;
+        var selCrm = Griffin.Prefs.getPrefValue("crmSystem", "string");
+        document.getElementById("mlSelectedCRM").selectedItem = document.getElementById("miCrm" + selCrm);
+        GriffinLogin.setLoginParams(selCrm);
     }
 };
 

@@ -1,6 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <?xml-stylesheet href="chrome://griffin/skin/login.css" type="text/css"?>
-
 <!DOCTYPE window SYSTEM "chrome://griffin/locale/login.dtd">
 
 <!-- TODO: Beautify the login dialog -->
@@ -10,8 +9,8 @@
         title="&login.title;"
         screenX="100"
         screenY="110"
-        height="225"
-        width="200"
+        height="570"
+        width="500"
         persist="width height screenX screenY">
 
   <script src="chrome://griffin/content/Prefs.js" type="text/javascript"></script>
@@ -19,25 +18,39 @@
   <script src="chrome://griffin/content/CRMApi/CRMApi.js" type="text/javascript"></script>
   <script src="chrome://griffin/content/GriffinCommon.js"></script>
   <script src="chrome://griffin/content/login.js"></script>
-  
-  <vbox id="gfn_loginWrapper" flex="1">
-    <hbox>
-      <label control="username">&login.username;</label>
-      <textbox id="username" persist="value"></textbox>
-    </hbox>
-    <hbox>
-      <label control="password">&login.password;</label>
-      <textbox type="password" id="password"></textbox>
-    </hbox>
-    <hbox>
-      <label control="url">&login.url;</label>
-      <textbox id="url"></textbox>
-    </hbox>
-    <button id="submit" oncommand="GriffinLogin.login();" label="&login.login;"></button>
-    <hbox>
-      <label control="rememberMe">&login.rememberMe;</label>
-      <checkbox id="rememberMe"></checkbox>
-    </hbox>
-    <label id="errMsg" class="lblErr"></label>
+
+
+  <vbox flex="1">
+    <groupbox>
+      <caption label="&general.login;"></caption>
+      <menulist id="mlSelectedCRM" oncommand="return GriffinLogin.toggleCrm();">
+        <menupopup id="mpSelectedCrm">
+          <menuitem id="miCrmSalesforce" label="Salesforce" value="Salesforce"/>
+          <menuitem id="miCrmZoho" label="Zoho" value="Zoho"/>
+        </menupopup>
+      </menulist>
+      <hbox>
+        <label>&general.username;</label>
+        <spacer flex="1"></spacer>
+        <textbox width="250" id="username"></textbox>
+      </hbox>
+      <hbox>
+        <label>&general.password;</label>
+        <spacer flex="1"></spacer>
+        <textbox width="250" id="password" type="password"></textbox>
+      </hbox>
+      <hbox>
+        <label>&general.serverUrl;</label>
+        <spacer flex="1"></spacer>
+        <textbox width="250" id="serverUrl"></textbox>
+      </hbox>
+      <hbox>
+        <label>&general.rememberMe;</label>
+        <spacer flex="1"></spacer>
+        <checkbox id="rememberMe"></checkbox>
+      </hbox>
+      <button label="&general.login;" oncommand="GriffinLogin.login();"></button>
+      <label id="errMsg" class="lblErr"></label>
+    </groupbox>
   </vbox>
 </window>

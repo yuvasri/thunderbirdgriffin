@@ -69,11 +69,16 @@ var GriffinMessage = {
                     var crmContact = GriffinMessage.gfn_addressBookListener.setContactVals(contact, fieldMap);
                     var id = GriffinCommon.api.upsert(myObj, crmContact);
                     if(id != null){
+                        Griffin.Logger.log("Sucessfully added contact to CRM.", true, true);
                         GriffinMessage.addressUnListen();
                         // TODO: fix up the id mapping on card creation.
                         cards[i].card.custom1 = id;
                         cards[i].card.editCardToDatabase(cards[i].folder);
                         GriffinMessage.addressListen();
+                    }
+                    else
+                    {                    
+                        Griffin.Logger.log("Sucessfully updated contact in CRM.", true, true);
                     }
                 }
             }

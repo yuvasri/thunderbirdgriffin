@@ -1,4 +1,203 @@
-﻿if (!Griffin){
+﻿function SOAPClientParameters()
+{
+	var _pl = new Array();
+	
+	this.add = function(name, innerText) 
+	{
+	    var newObj = {name: name, innerText: innerText};
+	    _pl.push(newObj);
+	    return newObj;
+	};
+	
+	// TODO: Cache regexes?
+	this.cleanStringXml = function(str){
+	    return str.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+	};
+	
+	// Expect value to be primative type or another instance of SOAPClientParameters at this point.
+	this._toXml = function(obj, nsPrefix){
+	    var xml = "<";
+	    if(nsPrefix){
+	        xml += nsPrefix + ":";
+	    }
+	    xml += obj.name;
+	    for(prop in obj){
+	        if(prop != "name" && prop != "innerText"){
+	            xml += " " + prop + '="' + this.cleanStringXml(obj[prop]) + '"';
+	        }
+	    }
+	    xml += ">";
+	    if(obj.innerText instanceof SOAPClientParameters){
+	        xml += obj.innerText.toXml(nsPrefix);
+	    }
+	    else if(obj != null){
+	        xml += this.cleanStringXml(obj.innerText.toString());
+	    }
+	    xml += "</";
+	    if(nsPrefix){
+	        xml += nsPrefix + ":";
+	    }
+	    return xml + obj.name + ">";
+	};
+	
+	this.toXml = function(nsPrefix)
+	{
+		var xml = "";
+		for(var pIdx = 0; pIdx < _pl.length; pIdx++)
+		{
+			if(typeof(_pl[pIdx]) != "function")
+				xml += this._toXml(_pl[pIdx], nsPrefix);
+		}
+		return xml;	
+	};
+	
+}
+
+var SOAPClient = {
+    invoke: function(url, method, parameters, headerParameters, async, callback, ns, action)
+    {
+	    // build SOAP request
+	    var sr;
+	    if(action == "POST" && parameters){
+	        sr =    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + 
+	                "<soap:Envelope " + (ns ? "xmlns:myns=\"" + ns + "\" " : "") + "xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
+			        (headerParameters ? ("<soap:Header>" + headerParameters.toXml(ns ? "myns" : undefined) + "</soap:Header>") : "") +
+			        "<soap:Body>" +
+			        "<" + (ns ? "myns:" : "") + method + ">" +
+			        parameters.toXml(ns ? "myns" : undefined) +
+			        "</" + (ns ? "myns:" : "") + method + "></soap:Body></soap:Envelope>";
+		
+		}
+	    //Griffin.Logger.log("CRMApi.js\r\nUrl: " + url + "\r\n" + sr, true);
+	    // send request
+	    var xmlHttp = new XMLHttpRequest();
+	    xmlHttp.open(action, url, async);
+	    if(ns){
+	        var soapaction = ((ns.lastIndexOf("/") != ns.length - 1) ? ns + "/" : ns) + method;
+	        xmlHttp.setRequestHeader("SOAPAction", soapaction);
+	    }
+	    if(action == "POST"){
+	        xmlHttp.setRequestHeader("Content-Type", "text/xml; charset=utf-8");
+	    }
+	    if(async) 
+	    {
+		    xmlHttp.onreadystatechange = function() 
+		    {
+			    if(xmlHttp.readyState == 4)
+				    SOAPClient.parseResult(xmlHttp, method, callback );
+		    }
+	    }
+	    xmlHttp.send(sr);
+	    if (!async)
+		    return SOAPClient.parseResult(xmlHttp, method);
+		return null;
+    },
+   
+    parseResult: function(xmlHttp, method, callback){
+        //Griffin.Logger.log("CRMApi.js\r\n" + xmlHttp.responseText, true);
+        var errs = xmlHttp.responseXML.getElementsByTagName("Fault"); // SFDC uses this
+        if(errs.length == 0)
+            errs = xmlHttp.responseXML.getElementsByTagName("error"); // Zoho uses this
+        if(errs.length > 0){
+            var errObj = SOAPClient.DOM2Obj(errs[0]);
+            if(callback){
+                callback.onFailure(errObj);        
+                return null;
+            }
+            else
+                return errObj;
+        }       
+          
+        var response = xmlHttp.responseXML.getElementsByTagName("Body"); // SFDC uses this
+        if(response.length == 0)
+            response = xmlHttp.responseXML.getElementsByTagName("response"); // Zoho uses this
+        if(response.length == 0) {
+            var err = "Could not parse return message, no body Tag recognised.";
+            if(callback){
+                callback.onFailure(err);
+                return null;
+            }
+            else{
+                throw err;
+            }
+        }
+        var retVal = SOAPClient.DOM2Obj(response[0]);
+        if(callback){
+            callback.onSuccess(retVal);
+            return null;
+        }
+        else
+            return retVal;
+    },
+    
+    appendResult: function(obj, nodeName, nodeValue){        
+        if(obj[nodeName]){
+            if(obj[nodeName] instanceof Array){
+               obj[nodeName].push(nodeValue); 
+            }
+            else{
+                var newArr = new Array();
+                newArr.push(obj[nodeName]);
+                newArr.push(nodeValue);
+                obj[nodeName] = newArr;
+            }
+        }
+        else{
+           obj[nodeName] = nodeValue;
+        }
+    },
+    
+    DOM2Obj: function(node){
+        var obj = {};
+        for(var attIdx = 0; attIdx < node.attributes.length; attIdx++){
+            var currAtt = node.attributes[attIdx];
+            obj[currAtt.nodeName] = currAtt.nodeValue;
+        }
+        for(var childIdx = 0; childIdx < node.childNodes.length; childIdx++){
+            var currChild = node.childNodes[childIdx];
+            if(currChild.nodeType == Node.TEXT_NODE || currChild.nodeType == node.CDATA_SECTION_NODE){
+                SOAPClient.appendResult(obj, "innerText", currChild.nodeValue);
+            }
+            if(currChild.childNodes.length == 0){
+                SOAPClient.appendResult(obj, currChild.nodeName, null);
+            }
+            else if(currChild.childNodes.length == 1 && currChild.attributes.length == 0 && currChild.firstChild.nodeType == Node.TEXT_NODE){
+                SOAPClient.appendResult(obj, currChild.nodeName, currChild.firstChild.nodeValue);
+            }
+            else{
+                SOAPClient.appendResult(obj, currChild.nodeName, SOAPClient.DOM2Obj(currChild));
+            }
+        }
+        
+        obj.toString = function(indent){
+            var string = "";
+            for(prop in this){
+                if(prop == "toString"){
+                    continue;
+                }
+                if(indent){
+                    for(var i = 0; i < indent; i++){
+                        string += "  ";
+                    }
+                }
+                if(this[prop] == null){
+                    string += prop + ": [NULL]\r\n"
+                }
+                else{
+                    string += prop + ": " + this[prop].toString(indent + 1) + "\r\n";
+                }
+            }
+            return string;
+        }
+        return obj;
+    }
+};
+
+
+
+
+
+if (!Griffin){
     var Griffin = {};
 }
 
@@ -31,7 +230,7 @@ Griffin.Crm.prototype.invoke = function(method, params, hdrParams, callback, act
     }
     var retVal = SOAPClient.invoke(this.endpoint, method, params, hdrParams, asynch, callback, this.ns, action);
     if(!asynch){
-        Griffin.Logger.log(retVal.toString(0), true);
+        //Griffin.Logger.log(retVal.toString(0), true);
     }
     return retVal;
 };
@@ -453,199 +652,4 @@ Griffin.SupportedCRMs.Zoho._getRecordXml = function(type, record){
     row["no"] = 1;
     var xmlData = "<" + type + ">" + wrapRow.toXml() + "</" + type + ">";
     return xmlData;
-};
-
-function SOAPClientParameters()
-{
-	var _pl = new Array();
-	
-	this.add = function(name, innerText) 
-	{
-	    var newObj = {name: name, innerText: innerText};
-	    _pl.push(newObj);
-	    return newObj;
-	};
-	
-	// TODO: Cache regexes?
-	this.cleanStringXml = function(str){
-	    return str.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-	};
-	
-	// Expect value to be primative type or another instance of SOAPClientParameters at this point.
-	this._toXml = function(obj, nsPrefix){
-	    var xml = "<";
-	    if(nsPrefix){
-	        xml += nsPrefix + ":";
-	    }
-	    xml += obj.name;
-	    for(prop in obj){
-	        if(prop != "name" && prop != "innerText"){
-	            xml += " " + prop + '="' + this.cleanStringXml(obj[prop]) + '"';
-	        }
-	    }
-	    xml += ">";
-	    if(obj.innerText instanceof SOAPClientParameters){
-	        xml += obj.innerText.toXml(nsPrefix);
-	    }
-	    else if(obj != null){
-	        xml += this.cleanStringXml(obj.innerText.toString());
-	    }
-	    xml += "</";
-	    if(nsPrefix){
-	        xml += nsPrefix + ":";
-	    }
-	    return xml + obj.name + ">";
-	};
-	
-	this.toXml = function(nsPrefix)
-	{
-		var xml = "";
-		for(var pIdx = 0; pIdx < _pl.length; pIdx++)
-		{
-			if(typeof(_pl[pIdx]) != "function")
-				xml += this._toXml(_pl[pIdx], nsPrefix);
-		}
-		return xml;	
-	};
-	
-}
-
-var SOAPClient = {
-    invoke: function(url, method, parameters, headerParameters, async, callback, ns, action)
-    {
-	    // build SOAP request
-	    var sr;
-	    if(action == "POST" && parameters){
-	        sr =    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + 
-	                "<soap:Envelope " + (ns ? "xmlns:myns=\"" + ns + "\" " : "") + "xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
-			        (headerParameters ? ("<soap:Header>" + headerParameters.toXml(ns ? "myns" : undefined) + "</soap:Header>") : "") +
-			        "<soap:Body>" +
-			        "<" + (ns ? "myns:" : "") + method + ">" +
-			        parameters.toXml(ns ? "myns" : undefined) +
-			        "</" + (ns ? "myns:" : "") + method + "></soap:Body></soap:Envelope>";
-		
-		}
-	    Griffin.Logger.log("CRMApi.js\r\nUrl: " + url + "\r\n" + sr, true);
-	    // send request
-	    var xmlHttp = new XMLHttpRequest();
-	    xmlHttp.open(action, url, async);
-	    if(ns){
-	        var soapaction = ((ns.lastIndexOf("/") != ns.length - 1) ? ns + "/" : ns) + method;
-	        xmlHttp.setRequestHeader("SOAPAction", soapaction);
-	    }
-	    if(action == "POST"){
-	        xmlHttp.setRequestHeader("Content-Type", "text/xml; charset=utf-8");
-	    }
-	    if(async) 
-	    {
-		    xmlHttp.onreadystatechange = function() 
-		    {
-			    if(xmlHttp.readyState == 4)
-				    SOAPClient.parseResult(xmlHttp, method, callback );
-		    }
-	    }
-	    xmlHttp.send(sr);
-	    if (!async)
-		    return SOAPClient.parseResult(xmlHttp, method);
-		return null;
-    },
-   
-    parseResult: function(xmlHttp, method, callback){
-        Griffin.Logger.log("CRMApi.js\r\n" + xmlHttp.responseText, true);
-        var errs = xmlHttp.responseXML.getElementsByTagName("Fault"); // SFDC uses this
-        if(errs.length == 0)
-            errs = xmlHttp.responseXML.getElementsByTagName("error"); // Zoho uses this
-        if(errs.length > 0){
-            var errObj = SOAPClient.DOM2Obj(errs[0]);
-            if(callback){
-                callback.onFailure(errObj);        
-                return null;
-            }
-            else
-                return errObj;
-        }       
-          
-        var response = xmlHttp.responseXML.getElementsByTagName("Body"); // SFDC uses this
-        if(response.length == 0)
-            response = xmlHttp.responseXML.getElementsByTagName("response"); // Zoho uses this
-        if(response.length == 0) {
-            var err = "Could not parse return message, no body Tag recognised.";
-            if(callback){
-                callback.onFailure(err);
-                return null;
-            }
-            else{
-                throw err;
-            }
-        }
-        var retVal = SOAPClient.DOM2Obj(response[0]);
-        if(callback){
-            callback.onSuccess(retVal);
-            return null;
-        }
-        else
-            return retVal;
-    },
-    
-    appendResult: function(obj, nodeName, nodeValue){        
-        if(obj[nodeName]){
-            if(obj[nodeName] instanceof Array){
-               obj[nodeName].push(nodeValue); 
-            }
-            else{
-                var newArr = new Array();
-                newArr.push(obj[nodeName]);
-                newArr.push(nodeValue);
-                obj[nodeName] = newArr;
-            }
-        }
-        else{
-           obj[nodeName] = nodeValue;
-        }
-    },
-    
-    DOM2Obj: function(node){
-        var obj = {};
-        for(var attIdx = 0; attIdx < node.attributes.length; attIdx++){
-            var currAtt = node.attributes[attIdx];
-            obj[currAtt.nodeName] = currAtt.nodeValue;
-        }
-        for(var childIdx = 0; childIdx < node.childNodes.length; childIdx++){
-            var currChild = node.childNodes[childIdx];
-            if(currChild.nodeType == Node.TEXT_NODE || currChild.nodeType == node.CDATA_SECTION_NODE){
-                SOAPClient.appendResult(obj, "innerText", currChild.nodeValue);
-            }
-            if(currChild.childNodes.length == 0){
-                SOAPClient.appendResult(obj, currChild.nodeName, null);
-            }
-            else if(currChild.childNodes.length == 1 && currChild.attributes.length == 0 && currChild.firstChild.nodeType == Node.TEXT_NODE){
-                SOAPClient.appendResult(obj, currChild.nodeName, currChild.firstChild.nodeValue);
-            }
-            else{
-                SOAPClient.appendResult(obj, currChild.nodeName, SOAPClient.DOM2Obj(currChild));
-            }
-        }
-        
-        obj.toString = function(indent){
-            var string = "";
-            for(prop in this){
-                if(prop == "toString"){
-                    continue;
-                }
-                if(indent){
-                    for(var i = 0; i < indent; i++){
-                        string += "  ";
-                    }
-                }
-                if(this[prop] == null){
-                    string += prop + ": [NULL]\r\n"
-                }
-                else{
-                    string += prop + ": " + this[prop].toString(indent + 1) + "\r\n";
-                }
-            }
-            return string;
-        }
-        return obj;
-    }
 };
