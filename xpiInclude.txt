@@ -2,6 +2,7 @@
 chrome.manifest
 content\*.js
 content\*.xul
+content\CRMApi\*.js
 skin\*.css
 skin\*.png
 skin\*.gif
@@ -9,5 +10,7 @@ skin\*.jpg
 skin\*.bmp
 skin\*.bmp
 locale\*-*\*.dtd
+locale\*-*\*.properties
 locale\??\*.dtd
+locale\*-*\*.properties
 defaults\preferences\*.js

@@ -4,3 +4,9 @@
 <!ENTITY login.url "Url">
 <!ENTITY login.login "Login">
 <!ENTITY login.rememberMe "Remember Me">
+<!ENTITY general.login "Login">
+<!ENTITY general.username "Username">
+<!ENTITY general.password "Password">
+<!ENTITY general.serverUrl "Server Url">
+<!ENTITY general.rememberMe "Remember Me">
+<!ENTITY general.login "Remember Me">
