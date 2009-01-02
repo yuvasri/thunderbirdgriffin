@@ -236,14 +236,6 @@ var GriffinMessage = {
         window.open("chrome://griffin/content/options.xul", "options", "chrome,resizable=yes,titlebar");
     },
     
-    // TODO: Globalise synch messages
-    getCRMUpdatedContacts: function(lastUpdateDate, retreiveFields, fn_updateMethod){
-        // TODO: Allow synch criteria other than ownership.
-        var ownershipLimited = Griffin.Prefs.getPrefValue("synchContactOwnedBy", "string");
-        var crmObj = GriffinCommon.getCrmObjectFromTbirdObject("Contact");
-        var contacts = GriffinCommon.api.getRecords(crmObj, lastUpdateDate, ownershipLimited, retreiveFields, fn_updateMethod);
-    },
-    
     beginSynchContacts: function(){
         var synchContactDir = Griffin.Prefs.getPrefValue("synchContactDir", "string");
         if(synchContactDir == "BOTH" ||
@@ -270,36 +262,54 @@ var GriffinMessage = {
             }
             var lastUpdateDate = new Date();
             lastUpdateDate.setTime(prefTime);
-            GriffinMessage.getCRMUpdatedContacts(lastUpdateDate, retreiveFields, GriffinMessage.updateABFromContacts);            
+            GriffinMessage.getCRMUpdatedContacts(lastUpdateDate, retreiveFields);            
         }
     },
     
-    updateABFromContacts: function(contacts){
-        // TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
-        // TODO: Synch across multiple address books.
+    // TODO: Globalise synch messages
+    getCRMUpdatedContacts: function(lastUpdateDate, retreiveFields){
+        // TODO: Allow synch criteria other than ownership.
+        var ownershipLimited = Griffin.Prefs.getPrefValue("synchContactOwnedBy", "string");
+        var crmObj = GriffinCommon.getCrmObjectFromTbirdObject("Contact");
+        var contacts = GriffinCommon.api.getRecords(crmObj, lastUpdateDate, ownershipLimited, retreiveFields, GriffinMessage.getUpdatedContactsComplete);
+    },
+    
+    updateABFromContactsData: null, 
+    getUpdatedContactsComplete: function(contacts){   
         Griffin.Logger.log("updateABFromContacts - " + contacts.length + " contacts to synch", true, false, true);
-        // Stop listening, or we'll receive try and update a bunch of stuff in SFDC.
-        GriffinMessage.addressUnListen();
+        var candidates = GriffinCommon.getCandidateMatches();
+        GriffinMessage.updateABFromContactsData = {lastIdx: 0, contacts: contacts, candidates: candidates};
+        var delay = Griffin.Prefs.getPrefValue("ContactBatchDelay", "int");
+        window.setTimeout("GriffinMessage.updateABFromContacts()", delay);
+    },
+       
+    updateABFromContacts: function(){
+        var contactsThisRun = Griffin.Prefs.getPrefValue("ContactBatchSize", "int");
+        var lastIdx = GriffinMessage.updateABFromContactsData.lastIdx;
+        var contacts = GriffinMessage.updateABFromContactsData.contacts;
+        var candidates = GriffinMessage.updateABFromContactsData.candidates;
+        // TODO: Hardcoded directory uri, personal address book, rewite to make dynamic.
         var abDirUri = "moz-abmdbdirectory://abook.mab";
         var defaultDirectory = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService).GetResource(abDirUri).QueryInterface(Components.interfaces.nsIAbDirectory);
         var fieldMap = GriffinCommon.getFieldMap("Contact");
-        var candidates = GriffinCommon.getCandidateMatches();
-        for(var i = 0; i < contacts.length; i++){
-            Griffin.Logger.log("Synchronising updates (" + (i + 1) + "/" + contacts.length + ").", true, true, false);
-            Griffin.Logger.log("Id: " + contacts[i].Id, true, false, true);
-            window.setTimeout("document.getElementById('synch_progress').value = " + ((i + 1) * 100 / contacts.length), 0);
-            var currContact = contacts[i];
-            
+        if(contactsThisRun + lastIdx > contacts.length){
+            contactsThisRun = contacts.length - lastIdx;
+        }
+        // Stop listening, or we'll receive try and update a bunch of stuff in SFDC.
+        GriffinMessage.addressUnListen();
+        var i = lastIdx;
+        for(; i < contactsThisRun + lastIdx; i++){
+            var currContact = contacts[i];            
             var matchObj = GriffinCommon.getBestMatch(fieldMap, candidates, currContact);
-            // Should have found the matchObj by now otherwise we're adding a new card.
+            // Should have found the matchObj by now, otherwise we're adding a new card.
             var newCard = (matchObj == null);
             var cardMatch = null;
             if(newCard){
-                Griffin.Logger.log("Contact not found - Creating new card.", true, false, true);
+                Griffin.Logger.log("Contact not found - Creating new card for id " + currContact.Id + ".", true, false, true);
                 cardMatch = Components.classes["@mozilla.org/addressbook/cardproperty;1"].createInstance(Components.interfaces.nsIAbCard);
             }
             else{
-                Griffin.Logger.log("Contact found - Updating card.", true, false, true);
+                Griffin.Logger.log("Contact found - Updating card for id " + currContact.Id + ".", true, false, true);
                 cardMatch = matchObj.Card;
             }
             GriffinMessage.setProps(cardMatch, fieldMap, currContact);
@@ -310,17 +320,26 @@ var GriffinMessage = {
                 cardMatch.editCardToDatabase(matchObj.Directory);
             }
         }
-        var propogateDeletions = Griffin.Prefs.getPrefValue("synchDeletions", "propogateDeletions");
-        if(propogateDeletions){
-            //TODO: Should probably synch deletions here :-)
-        }
-        document.getElementById("synch_progress").value = 100;
-        
+        Griffin.Logger.log("Synchronising updates (" + (i + 1) + "/" + contacts.length + ").", true, true, false);
+        document.getElementById('synch_progress').value = ((i + 1) * 100 / contacts.length);
         GriffinMessage.addressListen();
-        // TODO: Fix up the time that we're setting the last synch to. Must set to the time we set in salesforce query, not time update ends.
-        var now = new Date();
-        Griffin.Prefs.setPrefValue("lastSynch", now.getTime(), "string");
-        Griffin.Logger.log("Griffin Status", false, true, false);
+        if(i == contacts.length){
+            var propogateDeletions = Griffin.Prefs.getPrefValue("synchDeletions", "propogateDeletions");
+            if(propogateDeletions){
+                //TODO: Should probably synch deletions here :-)
+            }
+            document.getElementById("synch_progress").value = 100;
+            
+            // TODO: Fix up the time that we're setting the last synch to. Should set to the time we set in salesforce query, not time update ends.
+            var now = new Date();
+            Griffin.Prefs.setPrefValue("lastSynch", now.getTime(), "string");
+            Griffin.Logger.log("Griffin Status", false, true, false);
+        }
+        else{
+            GriffinMessage.updateABFromContactsData.lastIdx = i;
+            var delay = Griffin.Prefs.getPrefValue("ContactBatchDelay", "int");
+            window.setTimeout("GriffinMessage.updateABFromContacts()", delay);
+        }
     },
     
     setProps: function(card, fieldMap, contact){

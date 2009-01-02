@@ -101,10 +101,14 @@
 cd $(ProjectDir)
 FINDSTR "TODO" content\*.*&gt; ToDos.txt
 FINDSTR "TODO" *.rdf&gt;&gt; ToDos.txt
-del griffin*.xpi
 FOR /F "delims=&lt;.&gt; tokens=3,4,5" %25%25F IN ('FIND "&lt;em:version&gt;" install.rdf') DO SET GrifVer=%25%25F_%25%25G_%25%25H
 "C:\Program Files\7Zip\7z.exe" -tZIP u griffin.xpi @xpiInclude.txt
-COPY griffin.xpi griffin_v%25GrifVer%25.xpi</PostBuildEvent>
+COPY /Y griffin.xpi griffin_v%25GrifVer%25.xpi
+REN install.rdf "install UpdateUrl.rdf"
+REN "install NoUpdateUrl.rdf" "install.rdf"
+"C:\Program Files\7Zip\7z.exe" -tZIP u griffin_Moz_v%25GrifVer%25.xpi @xpiInclude.txt
+REN "install.rdf" "install NoUpdateUrl.rdf" 
+REN "install UpdateUrl.rdf" install.rdf</PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />

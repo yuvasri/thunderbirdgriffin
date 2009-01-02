@@ -1,5 +1,6 @@
 ﻿griffin.sqlite
 chrome.manifest
+install.rdf
 content\*.js
 content\*.xul
 content\CRMApi\*.js
