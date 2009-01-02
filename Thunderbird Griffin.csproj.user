@@ -20,8 +20,7 @@
           <ExternalProgram>C:\Program Files\Mozilla Thunderbird\thunderbird.exe</ExternalProgram>
           <StartExternalURL>
           </StartExternalURL>
-          <StartCmdLineArguments>
-          </StartCmdLineArguments>
+          <StartCmdLineArguments>-p default</StartCmdLineArguments>
           <StartWorkingDirectory>
           </StartWorkingDirectory>
           <EnableENC>False</EnableENC>
