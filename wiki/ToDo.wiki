@@ -4,7 +4,7 @@
 
 content\about.xul:  <!-- TODO: Get about.xul right. -->
 
----
+----
 
 content\GriffinCommon.js:        // TODO: Cache varous XPCOM classes used in GriffinCommon? Performance?
 
@@ -22,7 +22,7 @@ content\GriffinCommon.js:            // TODO: Perhaps getBestMatch should be som
 
 content\GriffinCommon.js:            // TODO: Perhaps getMatchStrength should be somewhere else? See getCardForContact
 
----
+----
 
 content\Log.js:        // TODO: Use nsIConsoleMessage interface of @mozilla.org/scripterror;1 for logging to error console - flexibility.
 
@@ -32,11 +32,11 @@ content\login.js:            // TODO: Globalise
 
 content\login.xul:<!-- TODO: Beautify the login dialog -->
 
----
+----
 
 content\Message.js:    // TODO: A way of getting an nsIAbCard from a message Uri (or a list of likely ones?).
 
----
+----
 
 content\options.js:// TODO: Options screen performs login twice, (tasks and contacts)
 
@@ -58,7 +58,7 @@ content\options.js:        // TODO: Validate numeric-ness of strength fields.
 
 content\options.js:        // TODO: Validate Id field mapped?
 
----
+----
 
 content\overlay.js:        //TODO: Hook OnItemAdded in folder listener, rather than the TotalMessages property changing. (applicable when listening to just synch folder). 
 
@@ -82,11 +82,11 @@ content\overlay.js:                //TODO: Should probably synch deletions here 
 
 content\overlay.js:            // TODO: Fix up the time that we're setting the last synch to. Should set to the time we set in salesforce query, not time update ends.
 
----
+----
 
 content\overlay.xul:  <!-- TODO: Globalise menu labels on message window overlay. -->
 
----
+----
 
 install NoUpdateUrl.rdf:    <!-- TODO: a proper homepage -->
 
@@ -94,7 +94,7 @@ install NoUpdateUrl.rdf:    <!-- TODO: About page -->
 
 install NoUpdateUrl.rdf:    <!-- TODO: Better Icon -->
 
----
+----
 
 install.rdf:    <!-- TODO: a proper homepage -->
 
@@ -104,6 +104,6 @@ install.rdf:    <!-- TODO: Better Icon -->
 
 install.rdf:    <!-- TODO: Need to host this in a more stable location than my svn repo -->
 
----
+----
 
 update.rdf:    <!-- TODO: Signature required? -->
