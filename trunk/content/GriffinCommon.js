@@ -34,34 +34,54 @@ if(!GriffinCommon || GriffinCommon == null){
                 return null;
             },
             
-            // TODO: Login asynchronously
-            ensureLogin: function(){
+            ensureLogin: function(callbackSuccess, callbackFail){
+                if(!callbackSuccess){
+                    throw "Only asynchronous login is supported. Specify a callback.";
+                }
                 if(GriffinCommon.api.isLoggedIn){
-                    return true;
-                }
-                Griffin.Logger.log("Logging in...", true, true, true);
-                var credentials = GriffinCommon.getCredentialsForUrl(GriffinCommon.api.endpoint);
-                if(credentials != null){
-                    try{
-                        var loginResult = GriffinCommon.api.login(credentials.user, credentials.password);
-                    } catch (e) {
-                        // TODO: Globalise.
-                         Griffin.Logger.log('Stored login for ' + GriffinCommon.api.endpoint + ' failed with error ' + e, true, true, true);
-                    }
-                }
-                // No password saved or login failed. Login using the dialog box.
-                if(! GriffinCommon.api.isLoggedIn){                
-                    var dialog = window.openDialog('chrome://griffin/content/login.xul', '_blank', 'modal');
-                }
-                // May have still not logged in (e.g. cancelled the login dialog).
-                // TODO: Globalise login status messages
-                if(GriffinCommon.api.isLoggedIn){
-                    Griffin.Logger.log("Login successful...", true, true, false);
+                    callbackSuccess();
                 }
                 else{
-                    Griffin.Logger.log("Login failed. See Error Console for details.", true, true, false);                
+                    Griffin.Logger.log("Logging in...", true, true, true);
+                    var credentials = GriffinCommon.getCredentialsForUrl(GriffinCommon.api.endpoint);
+                    if(credentials != null){
+                        try{
+                            var loginResult = GriffinCommon.api.login(credentials.user, credentials.password, function(){                                
+                                // No password saved or login failed. Login using the dialog box.
+                                if(! GriffinCommon.api.isLoggedIn){                
+                                    var dialog = window.openDialog('chrome://griffin/content/login.xul', '_blank', 'modal');
+                                }
+                                // May have still not logged in (e.g. cancelled the login dialog).
+                                // TODO: Globalise login status messages
+                                if(GriffinCommon.api.isLoggedIn){
+                                    Griffin.Logger.log("Login successful...", true, true, false);
+                                    callbackSuccess();
+                                }
+                                else{
+                                    Griffin.Logger.log("Login failed. See Error Console for details.", true, true, false);  
+                                    if(callbackFail){
+                                        callbackFail();  
+                                    }
+                                }
+                            });
+                        } catch (e) {
+                            // TODO: Globalise.
+                             Griffin.Logger.log('Stored login for ' + GriffinCommon.api.endpoint + ' failed with error ' + e, true, true, true);
+                        }
+                    }
                 }
-                return GriffinCommon.api.isLoggedIn
+            },
+            
+            getAbUrlFromId: function(id){
+                return GriffinCommon.executeScalar("SELECT om.AbUrl FROM ObjectMap om, CRM c WHERE om.CRMId = c.CRMId AND om.CrmRecordId = '" + id + "' AND c.CRMName = '" + GriffinCommon.api.crmName + "'");
+            },
+            
+            getCrmRecordIdFromUrl: function(url){
+                return GriffinCommon.executeScalar("SELECT om.CrmRecordId FROM ObjectMap om, CRM c WHERE om.CRMId = c.CRMId AND om.AbUrl = '" + url + "' AND c.CRMName = '" + GriffinCommon.api.crmName + "'");
+            },
+            
+            insertCrmRecordAbCardUrl: function(id, url){
+                
             },
             
             getFieldMap: function(obj){    
@@ -111,6 +131,18 @@ if(!GriffinCommon || GriffinCommon == null){
                 return null;
             },
             
+            getAddressBooks: function(){                
+                var addressBooks = [];
+                var rdfService = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService);
+                // enumerate all of the address books on this system
+                var parentDir = rdfService.GetResource("moz-abdirectory://").QueryInterface(Components.interfaces.nsIAbDirectory);
+                var enumerator = parentDir.childNodes;
+                while (enumerator.hasMoreElements()) {
+                    addressBooks.push(enumerator.getNext().QueryInterface(Components.interfaces.nsIAbDirectory));
+                }
+                return addressBooks;
+            },
+            
             getCandidateMatches: function(contact, fieldMaps){
                 // TODO: Limit getCardForContact search so that we only get getBestMatch on relevant cards (ie ones that match on at least one field). Partially implemented, see commented out code.
                 /*
@@ -124,12 +156,13 @@ if(!GriffinCommon || GriffinCommon == null){
                 queryString += ")";
                 */
                 var candidates = [];
-                var rdfService = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService);
-                // enumerate all of the address books on this system
-                var parentDir = rdfService.GetResource("moz-abdirectory://").QueryInterface(Components.interfaces.nsIAbDirectory);
-                var enumerator = parentDir.childNodes;
-                while (enumerator.hasMoreElements()) {
-                    var addrbook = enumerator.getNext().QueryInterface(Components.interfaces.nsIAbDirectory);
+                var addrBookUrl = Griffin.Prefs.getPrefValue("synchAddrBook", "string");
+                var addressBooks = GriffinCommon.getAddressBooks();
+                for(var i = 0; i < addressBooks.length; i++){
+                    var addrbook = addressBooks[i];
+                    if(!(addrBookUrl == 'ALL' || addrBookUrl == addrbook.directoryProperties.URI)){
+                        continue;
+                    }
                     /*
                     var uri = addrbook.directoryProperties.URI + queryString;
                     var queryDir = rdfService.GetResource(uri).QueryInterface(Components.interfaces.nsIAbDirectory);
@@ -186,6 +219,9 @@ if(!GriffinCommon || GriffinCommon == null){
                     return null;
             },
             
+            /**
+            Used to determine how closely a card matches the crm contact, based on the field maps and strength values.
+            */
             // TODO: Perhaps getMatchStrength should be somewhere else? See getCardForContact
             getMatchStrength: function(fieldMaps, candidateCard, contact){
                 var str = 0;
@@ -198,6 +234,9 @@ if(!GriffinCommon || GriffinCommon == null){
                 return str;
             },
             
+            /**
+            Debugging function. Dump all the property names of an object to a string.
+            */
             logProps: function(obj){
                 var msg = "";
                 for(prop in obj){

@@ -1,4 +1,10 @@
-﻿if (!Griffin){
+﻿/**
+File description.
+
+Used to abstract the preferences API somewhat.
+*/
+
+if (!Griffin){
     var Griffin = {};
 }
 

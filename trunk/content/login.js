@@ -5,12 +5,13 @@ var GriffinLogin = {
         var url = document.getElementById("serverUrl").value;
         try{
             GriffinCommon.api.endpoint = url;
-            GriffinCommon.api.login(username, password);
-            if(document.getElementById("rememberMe").checked){
-                var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
-                passwordManager.addUser(url, username, password);
-            }
-            self.close();
+            GriffinCommon.api.login(username, password, function(){ 
+                if(document.getElementById("rememberMe").checked){
+                    var passwordManager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
+                    passwordManager.addUser(url, username, password);
+                }
+                self.close();
+            });
        } catch(error) {
             Griffin.Logger.log(error, true, false, true);
             var lbl = document.getElementById("errMsg");

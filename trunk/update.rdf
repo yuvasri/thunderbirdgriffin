@@ -22,6 +22,21 @@
           </RDF:Description>
         </RDF:li>
 
+        <RDF:li>
+          <RDF:Description>
+            <em:version>0.1.1</em:version>
+            <em:targetApplication>
+              <RDF:Description>
+                <em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id>
+                <em:minVersion>2.0.0.0</em:minVersion>
+                <em:maxVersion>2.0.0.*</em:maxVersion>
+                <em:updateLink>http://thunderbirdgriffin.googlecode.com/files/griffin_v0_1_1.xpi</em:updateLink>
+                <em:updateHash>sha1:4847066e01201d679a161fd07beadf70c6e33b6c</em:updateHash>
+              </RDF:Description>
+            </em:targetApplication>
+          </RDF:Description>
+        </RDF:li>
+        
       </RDF:Seq>
     </em:updates>
     <!-- TODO: Signature required? -->
