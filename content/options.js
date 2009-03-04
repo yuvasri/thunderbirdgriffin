@@ -1,6 +1,3 @@
-// TODO: Options screen performs login twice, (tasks and contacts)
-// TODO: 
-
 var FieldInfo = function(prop, label, fieldId){
     this.fieldId = fieldId;
     this.prop = prop;
@@ -11,10 +8,11 @@ var GriffinOptions = {
     onLoad: function() {
         try{
             // try to log in. if unsuccessful give up. avoids attempts to log in from two panels at once.
-            GriffinCommon.ensureLogin();
-            GriffinOptions.initGeneralPanel();
-            GriffinOptions.initContactPanel();
-            GriffinOptions.initTaskPanel();
+            GriffinCommon.ensureLogin(function(){                
+                GriffinOptions.initGeneralPanel();
+                GriffinOptions.initContactPanel();
+                GriffinOptions.initTaskPanel();
+            });
         } catch (e) {
             Griffin.Logger.log(e, true, false, true);
         }
@@ -61,14 +59,32 @@ var GriffinOptions = {
         document.getElementById("synchDir").selectedItem = document.getElementById("synchDir_" + Griffin.Prefs.getPrefValue("synchContactDir", "string"));
         document.getElementById("synchOwn").selectedItem = document.getElementById("synchOwn_" + Griffin.Prefs.getPrefValue("synchContactOwnedBy", "string"));
         document.getElementById("synchFreq").value = Griffin.Prefs.getPrefValue("synchContactFrequency", "int");
+        GriffinOptions.populateSynchAddrBook();
+        
         // Contact field mapping
         GriffinOptions.startAppendFieldMap("Contact", "cnctMapping");
-    },   
+    },
     
     initTaskPanel: function(){
         GriffinOptions.startAppendFieldMap("Task", "taskMapping");
     },
-
+    
+    populateSynchAddrBook: function(){
+        var lbSynchAddrBook = document.getElementById("synchAddrBook");
+        var addressBooks = GriffinCommon.getAddressBooks();
+        var regIdClean = /[^-_:A-Za-z0-9]/g;
+        for(var i = 0; i < addressBooks.length; i++){
+            var currAb = addressBooks[i];
+            var li = document.createElement("listitem");
+            li.setAttribute("id", "synchAddrBook_" + currAb.directoryProperties.URI.replace(regIdClean, ''));
+            li.setAttribute("value", currAb.directoryProperties.URI);
+            li.setAttribute("label", currAb.dirName);
+            lbSynchAddrBook.appendChild(li);
+        }
+        var synchAddrBook = Griffin.Prefs.getPrefValue("synchAddrBook", "string");
+        lbSynchAddrBook.selectedItem = document.getElementById("synchAddrBook_" + synchAddrBook.replace(regIdClean, ''));
+    },
+    
     loginClick: function(){
         var selCrm = document.getElementById("mlSelectedCRM").value;
         var api = Griffin.CrmApi.GetApi(selCrm);
@@ -127,38 +143,40 @@ var GriffinOptions = {
         return props;
     },
     
-    // TODO: Need to get back to asynch at getFieldsDropDown, after change of api.
     getFieldsDropDown: function(obj){
-        if(!GriffinCommon.ensureLogin()){
+        if(!GriffinCommon.api.isLoggedIn){
             GriffinOptions["fieldsDrop_" + obj] = document.createElement("textbox");
         }
-        try{
-            var myObj = GriffinCommon.getCrmObjectFromTbirdObject(obj);
-            var fields = GriffinCommon.api.getFields(myObj, function(fields){                
-                var menulist = document.createElement("menulist");
-                //TODO: Find a slick way of making constant values be inserted into crm / tbird? Make use of editable menulists?? Could change to 2 drop downs instead of current static list + drop down? (nice idea :-)
-                //TODO: Enforce one-to-one relationship for field mappings.
-                //menulist.setAttribute("editable", "true");
-                var menupopup = document.createElement("menupopup");
-                menulist.appendChild(menupopup);
-                var menuitem = document.createElement("menuitem");
-                menuitem.setAttribute("label", "Not Mapped"); // Globalise!
-                menuitem.setAttribute("value", "");
-                menupopup.appendChild(menuitem);
-                for(var i = 0; i < fields.length; i++){
-                    var currField = fields[i];
+        else{
+            try{
+                var myObj = GriffinCommon.getCrmObjectFromTbirdObject(obj);
+                var fields = GriffinCommon.api.getFields(myObj, function(fields){                
+                    var menulist = document.createElement("menulist");
+                    //TODO: Find a slick way of making constant values be inserted into crm / tbird? Make use of editable menulists?? Could change to 2 drop downs instead of current static list + drop down? (nice idea :-)
+                    //TODO: Enforce one-to-one relationship for field mappings.
+                    //menulist.setAttribute("editable", "true");
+                    var menupopup = document.createElement("menupopup");
+                    menulist.appendChild(menupopup);
                     var menuitem = document.createElement("menuitem");
-                    menuitem.setAttribute("label", currField.label);
-                    menuitem.setAttribute("value", currField.name);
+                    menuitem.setAttribute("label", "Not Mapped"); // Globalise!
+                    menuitem.setAttribute("value", "");
                     menupopup.appendChild(menuitem);
-                }
-                GriffinOptions["fieldsDrop_" + obj] = menulist;
-            });
+                    for(var i = 0; i < fields.length; i++){
+                        var currField = fields[i];
+                        var menuitem = document.createElement("menuitem");
+                        menuitem.setAttribute("label", currField.label);
+                        menuitem.setAttribute("value", currField.name);
+                        menupopup.appendChild(menuitem);
+                    }
+                    GriffinOptions["fieldsDrop_" + obj] = menulist;
+                });
+            }
+            catch(e){
+                Griffin.Logger.log(e, true, false, true);
+                GriffinOptions["fieldsDrop_" + obj] = document.createElement("textbox");
+            }
         }
-        catch(e){
-            Griffin.Logger.log(e, true, false, true);
-            GriffinOptions["fieldsDrop_" + obj] = document.createElement("textbox");
-        }
+        
         /*
         {
             onSuccess: function(result){
@@ -341,6 +359,7 @@ var GriffinOptions = {
         Griffin.Prefs.setPrefValue("synchContactDir", document.getElementById("synchDir").selectedItem.value, "string");
         Griffin.Prefs.setPrefValue("synchContactOwnedBy", document.getElementById("synchOwn").selectedItem.value, "string");
         Griffin.Prefs.setPrefValue("synchContactFrequency", document.getElementById("synchFreq").value, "int");
+        Griffin.Prefs.setPrefValue("synchAddrBook", document.getElementById("synchAddrBook").selectedItem.value, "string");
         // We may have changed the frequency, so reschedule the synchronisation on the main page.
         getFirstOpener().GriffinMessage.scheduleSynch();
         return true;

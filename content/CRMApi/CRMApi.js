@@ -68,7 +68,7 @@ var SOAPClient = {
 			        "</" + (ns ? "myns:" : "") + method + "></soap:Body></soap:Envelope>";
 		
 		}
-	    //Griffin.Logger.log("CRMApi.js\r\nUrl: " + url + "\r\n" + sr, true);
+	    Griffin.Logger.log("CRMApi.js\r\nUrl: " + url + "\r\n" + sr, true);
 	    // send request
 	    var xmlHttp = new XMLHttpRequest();
 	    xmlHttp.open(action, url, async);
@@ -94,7 +94,7 @@ var SOAPClient = {
     },
    
     parseResult: function(xmlHttp, method, callback){
-        //Griffin.Logger.log("CRMApi.js\r\n" + xmlHttp.responseText, true);
+        Griffin.Logger.log("CRMApi.js\r\n" + xmlHttp.responseText, true);
         var errs = xmlHttp.responseXML.getElementsByTagName("Fault"); // SFDC uses this
         if(errs.length == 0)
             errs = xmlHttp.responseXML.getElementsByTagName("error"); // Zoho uses this
@@ -235,6 +235,7 @@ Griffin.Crm.prototype.invoke = function(method, params, hdrParams, callback, act
     return retVal;
 };
 
+//TODO: MyTeam ownership.
 Griffin.Crm.prototype.validateOwnerShip = function(ownership){
     if(ownership == "ME" || ownership == "ALL"){
         return true;
@@ -278,7 +279,7 @@ Griffin.Crm.prototype.formatDate = function(inDate){
 // Derived crm interfaces should override these with functions to do the right thing.
 
 // Should usually be the first function called before doing anything else.
-Griffin.Crm.prototype.login = function(username, password){};
+Griffin.Crm.prototype.login = function(username, password, callback){};
 
 // Returns an array of Griffin.Crm.FieldInfo objects describing the fields of an input object.
 Griffin.Crm.prototype.getFields = function(type, callback){}; 
@@ -303,19 +304,28 @@ Griffin.Crm.FieldInfo = function(name, label){
 Salesforce client
 */
 Griffin.SupportedCRMs.Salesforce = new Griffin.Crm("urn:partner.soap.sforce.com", "Salesforce");
-Griffin.SupportedCRMs.Salesforce.login = function (username, password){
+Griffin.SupportedCRMs.Salesforce.login = function (username, password, callback){
     var params = new SOAPClientParameters();
     params.add("username", username);
     params.add("password", password);
-    var result = this.invoke("login", params, undefined);
-    this.sessionId = result.loginResponse.result.sessionId;
-    this.endpoint = result.loginResponse.result.serverUrl;
-    // userId useful for ownership limited queries, so save for later.
-    this.userId = result.loginResponse.result.userId;
-    this.isLoggedIn = true;
-    return true;
+    var result = this.invoke("login", params, undefined, {
+        onSuccess: function(result){
+            GriffinCommon.api.sessionId = result.loginResponse.result.sessionId;
+            GriffinCommon.api.endpoint = result.loginResponse.result.serverUrl;
+            // userId useful for ownership limited queries, so save for later.
+            GriffinCommon.api.userId = result.loginResponse.result.userId;
+            GriffinCommon.api.isLoggedIn = true;
+            callback();
+        },
+        onFailure: function(err){
+            throw err;
+        }
+    });
 };
 
+//TODO: Salesforce upsert.
+
+// TODO: Asynch insert.
 Griffin.SupportedCRMs.Salesforce.insert = function(type, sObjects){
     var header = this._getHeader();
     var sObjectsParams = new SOAPClientParameters();
@@ -408,11 +418,11 @@ Zoho Client
 */
 Griffin.SupportedCRMs.Zoho = new Griffin.Crm(undefined, "Zoho");
 
-Griffin.SupportedCRMs.Zoho.login = function(username, apiKey){
+Griffin.SupportedCRMs.Zoho.login = function(username, apiKey, callback){
     this.username = encodeURIComponent(username);
     this.apiKey = encodeURIComponent(apiKey);
     this.isLoggedIn = true;
-    return true;
+    callback();
 };
 
 // TODO: Zoho.getFields cleanup.
@@ -555,7 +565,7 @@ Griffin.SupportedCRMs.Zoho.upsert = function(object, record){
         try{
             this.endpoint = this.endpoint + object + "/updateRecords" + this._loginQueryString() + "&xmlData=" + encodeURIComponent(xml) + "&id=" + record[idField];
             var res = this.invoke(undefined, undefined, undefined, undefined, "POST");
-            return null; // TODO: Zoho.upsert handle case of invalid id (by inserting)
+            return null;
         }
         finally{
             this.endpoint = prevEndpoint;

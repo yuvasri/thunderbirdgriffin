@@ -13,13 +13,13 @@ Griffin.Message = function(uri){
 };
 
 Griffin.Message.prototype.getDate = function(){
-    // this.innerMessage.date appears to be in ticks - convert to millis and format it sfdc style to make usable.
+    // this.innerMessage.date appears to be in ticks - convert to millis and format it crm style to make usable.
     var myDate = new Date();
     myDate.setTime(this.innerMessage.date / 1000);
     return GriffinCommon.api.formatDate(myDate);
 };
 
-// Uses global variables messenger and msgWindow. Lets hope they exist!
+// Uses global variables messenger and msgWindow. Let's hope they exist!
 Griffin.Message.prototype.getBody = function(){      
     var content = "";
     var msgService = messenger.messageServiceFromURI(this.uri);

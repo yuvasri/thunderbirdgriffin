@@ -1,6 +1,7 @@
 ﻿pref("extensions.griffin.propogateDeletions", false);
 pref("extensions.griffin.synchContactDir", "BOTH");
 pref("extensions.griffin.synchContactOwnedBy", "ME");
+pref("extensions.griffin.synchAddrBook", "ALL");
 pref("extensions.griffin.synchContactFrequency", 0);
 pref("extensions.griffin.lastSynch", "1000");
 pref("extensions.griffin.synchFolderName", "GriffinSynch");

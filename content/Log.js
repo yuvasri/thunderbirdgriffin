@@ -10,7 +10,8 @@ Griffin.Logger.log = function(msg, error, status, persist){
     if(error){
         // TODO: Use nsIConsoleMessage interface of @mozilla.org/scripterror;1 for logging to error console - flexibility.
         var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
-        consoleService.logStringMessage(msg);
+        var now = new Date();
+        consoleService.logStringMessage(now.toLocaleTimeString() + ": " + msg);
     }
     if(status){
         var statusPanel = document.getElementById("gfn_status");

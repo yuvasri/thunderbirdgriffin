@@ -7,7 +7,7 @@
     <em:id>griffin@mpbsoftware.com</em:id>
     <em:name>Griffin Salesforce Extension</em:name>
     <!-- A VS build script assumes that this is Major.Minor.Build[.Revision] so keep it that way punk!-->
-    <em:version>0.1.0</em:version>
+    <em:version>0.1.1</em:version>
     <em:description>Provides an intuitive interface between salesforce and Thunderbird.</em:description>
     <em:creator>David Hatfield</em:creator>
     
