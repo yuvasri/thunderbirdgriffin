@@ -294,6 +294,9 @@ Griffin.Crm.prototype.upsert = function(type, record){};
 // Returns an array of objects with appropriate fields set. More fields may be set than specified in fields parameter.
 Griffin.Crm.prototype.getRecords = function(type, modifiedSince, ownership, fields, callback){}; 
 
+// Returns the name of the Id field for a given object type.
+Griffin.Crm.prototype.idFieldFromType = function(type){};
+
 // An array of FieldInfo objects should be returned from the getFields call.
 Griffin.Crm.FieldInfo = function(name, label){
     this.name = name;
@@ -323,24 +326,38 @@ Griffin.SupportedCRMs.Salesforce.login = function (username, password, callback)
     });
 };
 
-//TODO: Salesforce upsert.
+Griffin.SupportedCRMs.Salesforce.idFieldFromType = function(type){
+    return "Id";
+}
 
-// TODO: Asynch insert.
-Griffin.SupportedCRMs.Salesforce.insert = function(type, sObjects){
+//TODO: Salesforce upsert.
+Griffin.SupportedCRMs.Salesforce.insert = function(type, sObjects, callback){
     var header = this._getHeader();
     var sObjectsParams = new SOAPClientParameters();
     for(var i = 0; i < sObjects.length; i++){
         var currObj = new SOAPClientParameters();
+        // NB: Type *MUST* be the first argument sent in the sObject wrapper (weird).
+        currObj.add("type", type);
         for(prop in sObjects[i]){
             if(typeof(sObjects[i][prop]) != "function"){
                 currObj.add(prop, sObjects[i][prop]);
             }
         }
-        currObj.add("type", type);
         sObjectsParams.add("sObjects", currObj);
     }
-    var result = this.invoke("create", sObjectsParams, header);
-    return result.createResponse.result.success;
+    var result = this.invoke("create", sObjectsParams, header, {
+        onSuccess: function(ret){
+            callback(ret.createResponse.result.success);
+        },
+        onFailure: function(err){
+            throw err;
+        }
+    });
+    if(result.createResponse){
+        return result.createResponse.result.success;
+    } else {
+        throw result.Fault;
+    }
 };
 
 Griffin.SupportedCRMs.Salesforce.getFields = function(obj, callback){
@@ -529,7 +546,7 @@ Griffin.SupportedCRMs.Zoho.getFields = function(obj, callback){
     return null;
 };
 
-Griffin.SupportedCRMs.Zoho.insert = function(type, objects){
+Griffin.SupportedCRMs.Zoho.insert = function(type, objects, callback){
     if(!objects || objects == null || objects.length == 0){
         throw "Objects must be a valid array!";
     }
@@ -543,7 +560,9 @@ Griffin.SupportedCRMs.Zoho.insert = function(type, objects){
         this.endpoint = this.endpoint + type + "/insertRecords" + this._loginQueryString() + "&xmlData=" + encodeURIComponent(xml);
         var retVal;
         try{
-            retVal = this.invoke(undefined, undefined, undefined, undefined, "POST");
+            retVal = this.invoke(undefined, undefined, undefined, {
+                onSuccess: 
+            }, "GET");
             // Assume that the first fieldlabel parameter of the recordDetail has id.
             ids.push(retVal.result.recorddetail.fieldlabel[0].innerText);
         }
@@ -560,7 +579,7 @@ Griffin.SupportedCRMs.Zoho.upsert = function(object, record){
     }
     var prevEndpoint = this.endpoint;
     var xml = this._getRecordXml(object, record);
-    var idField = this._idFieldFromType(object);
+    var idField = this.idFieldFromType(object);
     if(record[idField]){
         try{
             this.endpoint = this.endpoint + object + "/updateRecords" + this._loginQueryString() + "&xmlData=" + encodeURIComponent(xml) + "&id=" + record[idField];
@@ -574,7 +593,7 @@ Griffin.SupportedCRMs.Zoho.upsert = function(object, record){
     else{            
         try{
             this.endpoint = this.endpoint + object + "/insertRecords" + this._loginQueryString() + "&xmlData=" + encodeURIComponent(xml);
-            var retVal = this.invoke(undefined, undefined, undefined, undefined, "POST");
+            var retVal = this.invoke(undefined, undefined, undefined, undefined, "GET");
             return retVal.result.recorddetail.fieldlabel[0].innerText;
         }
         finally{
@@ -634,14 +653,14 @@ Griffin.SupportedCRMs.Zoho.formatDate = function(inDate){
     return year + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second;
 };
 
-Griffin.SupportedCRMs.Zoho._idFieldFromType = function(objectType){
+Griffin.SupportedCRMs.Zoho.idFieldFromType = function(objectType){
     switch(objectType){
         case "Contacts":
             return "CONTACTID";
         case "Tasks":
             return "ACTIVITYID";
     }
-    throw "_idFieldFromType does not understand object " + objectType;
+    throw "idFieldFromType does not understand object " + objectType;
 };
 
 Griffin.SupportedCRMs.Zoho._loginQueryString = function(){
@@ -651,7 +670,7 @@ Griffin.SupportedCRMs.Zoho._loginQueryString = function(){
 Griffin.SupportedCRMs.Zoho._getRecordXml = function(type, record){
     var wrapRow = new SOAPClientParameters();
     var fieldsList = new SOAPClientParameters();
-    var idField = this._idFieldFromType(type);
+    var idField = this.idFieldFromType(type);
     for(prop in record){
         if(typeof(record[prop]) != "function" && prop != idField){
             var addedObj = fieldsList.add("fieldlabel", record[prop]);
