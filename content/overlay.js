@@ -23,6 +23,7 @@ var GriffinMessage = {
         GriffinMessage.ensureSalesforceSynchFolder();
         GriffinMessage.addressListen();
         GriffinMessage.scheduleSynch();
+        GriffinCommon.ensureDatabase();
     },
 
     ensureSalesforceSynchFolder: function(){
@@ -242,10 +243,11 @@ var GriffinMessage = {
                     tasks.push(task);
                 }
                 var myObj = GriffinCommon.getCrmObjectFromTbirdObject("Task");
-                GriffinCommon.api.insert(myObj, tasks);
-                if(callback){
-                    callback(griffinMessages);
-                }
+                GriffinCommon.api.insert(myObj, tasks, function(success){
+                    if(success && callback){
+                        callback(griffinMessages);
+                    }
+                });
             }
         );
     },

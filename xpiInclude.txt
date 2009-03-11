@@ -1,5 +1,4 @@
-﻿griffin.sqlite
-chrome.manifest
+﻿chrome.manifest
 install.rdf
 content\*.js
 content\*.xul

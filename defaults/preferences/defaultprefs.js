@@ -8,6 +8,7 @@ pref("extensions.griffin.synchFolderName", "GriffinSynch");
 pref("extensions.griffin.messageBatchingTimeout", 1500);
 pref("extensions.griffin.ContactBatchSize", 1);
 pref("extensions.griffin.ContactBatchDelay", 50);
+pref("extensions.griffin.IdMatchStrength", 200);
 pref("extensions.griffin.crmSystem", "Salesforce");
 
 // Salesforce specific prefs.
