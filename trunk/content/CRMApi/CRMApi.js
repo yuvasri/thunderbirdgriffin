@@ -365,18 +365,18 @@ Griffin.SupportedCRMs.Salesforce.getFields = function(obj, callback){
     var describeSObjectParams = new SOAPClientParameters();
     describeSObjectParams.add("sObjectType", obj);
     this.invoke("describeSObject", describeSObjectParams, hdr, {
-        onSuccess: function(ret){
-            var fields = ret.describeSObjectResponse.result.fields;
-            var retArr = [];
-            for(var i = 0; i < fields.length; i++){
-                retArr.push(new Griffin.Crm.FieldInfo(fields[i].name, fields[i].label));
+            onSuccess: function(ret){
+                var fields = ret.describeSObjectResponse.result.fields;
+                var retArr = [];
+                for(var i = 0; i < fields.length; i++){
+                    retArr.push(new Griffin.Crm.FieldInfo(fields[i].name, fields[i].label));
+                }
+                callback(retArr);
+            },
+            onFailure: function(err){
+                throw err;
             }
-            callback(retArr);
-        },
-        onFailure: function(err){
-            throw err;
         }
-    }
     );
 };
 
@@ -558,10 +558,14 @@ Griffin.SupportedCRMs.Zoho.insert = function(type, objects, callback){
     for(var i = 0; i < objects.length; i++){
         var xml = this._getRecordXml(type, objects[i]);
         this.endpoint = this.endpoint + type + "/insertRecords" + this._loginQueryString() + "&xmlData=" + encodeURIComponent(xml);
-        var retVal;
         try{
-            retVal = this.invoke(undefined, undefined, undefined, {
-                onSuccess: 
+            this.invoke(undefined, undefined, undefined, {
+                onSuccess: function(retVal){
+                    callback(retVal);
+                },
+                onFailure: function(err){
+                    throw err;
+                }
             }, "GET");
             // Assume that the first fieldlabel parameter of the recordDetail has id.
             ids.push(retVal.result.recorddetail.fieldlabel[0].innerText);
@@ -583,7 +587,7 @@ Griffin.SupportedCRMs.Zoho.upsert = function(object, record){
     if(record[idField]){
         try{
             this.endpoint = this.endpoint + object + "/updateRecords" + this._loginQueryString() + "&xmlData=" + encodeURIComponent(xml) + "&id=" + record[idField];
-            var res = this.invoke(undefined, undefined, undefined, undefined, "POST");
+            var res = this.invoke(undefined, undefined, undefined, undefined, "GET");
             return null;
         }
         finally{

@@ -106,8 +106,8 @@ if(!GriffinCommon || GriffinCommon == null){
                 return GriffinCommon.executeScalar("SELECT om.CRMObject FROM ObjectMap om, CRM c WHERE om.CRMId = c.CRMId AND om.TBirdObject = '" + tbirdObj + "' AND c.CRMName = '" + GriffinCommon.api.crmName + "'");
             },
             
-            ensureDatabaseTable: function(tableName, tablePopulation, conn){
-                GriffinCommon.Logger.log("Validating table " + tableName, true, true);
+            ensureDatabaseTable: function(tableName, conn, tablePopulationScripts){
+                Griffin.Logger.log("Validating table " + tableName, true, true);
                 var tableExistsStmt = conn.createStatement('pragma table_info("' + tableName + '");');
                 try{
                     var exists = tableExistsStmt.executeStep();
@@ -116,9 +116,13 @@ if(!GriffinCommon || GriffinCommon == null){
                     tableExistsStmt.reset();
                 }
                 if(!exists){
-                    GriffinCommon.Logger.log("Creating table " + tableName, true, true);
-                    var tableCreateStmt = conn.createStatement(tablePopulation);                        
-                    tableCreateStmt.execute();
+                    Griffin.Logger.log("Creating table " + tableName, true, true);
+                    for(var stmt = 3; stmt < ensureDatabaseTable.arguments.length; stmt++){
+                        Griffin.Logger.log(ensureDatabaseTable.arguments[stmt]);
+                        var tableCreateStmt = conn.createStatement(ensureDatabaseTable.arguments[stmt]);
+                        tableCreateStmt.execute();
+                        tableCreateStmt.reset();
+                    }
                 };
             },
             
@@ -134,160 +138,165 @@ if(!GriffinCommon || GriffinCommon == null){
                 var storageService = Components.classes["@mozilla.org/storage/service;1"]
                                 .getService(Components.interfaces.mozIStorageService);
                 var conn = storageService.openDatabase(file);
-                GriffinCommon.ensureDatabaseTable("CRM", 
-                    'CREATE TABLE "CRM" ("CRMId" INTEGER PRIMARY KEY  AUTOINCREMENT  NOT NULL , "CRMName" varchar NOT NULL );' + 
-                    'INSERT INTO "CRM" VALUES(1,\'Salesforce\');' + 
+                GriffinCommon.ensureDatabaseTable("CRM",
+                    conn,
+                    'CREATE TABLE "CRM" ("CRMId" INTEGER PRIMARY KEY  AUTOINCREMENT  NOT NULL , "CRMName" varchar NOT NULL );' , 
+                    'INSERT INTO "CRM" VALUES(1,\'Salesforce\');' , 
                     'INSERT INTO "CRM" VALUES(2,\'Zoho\');'
                     );
                GriffinCommon.ensureDatabaseTable("AbCardContact",
+                    conn,
                     'CREATE TABLE "AbCardContact" ("Id" INTEGER PRIMARY KEY  NOT NULL ,"AbUrl" VARCHAR NOT NULL ,"CrmRecordId" VARCHAR, "CrmId" INTEGER NOT NULL  DEFAULT 1);'
                     );
                GriffinCommon.ensureDatabaseTable("FieldMap",
-                    'CREATE TABLE "FieldMap" ("fieldId" INTEGER NOT NULL , "CRMId" INTEGER NOT NULL , "crmField" VARCHAR NOT NULL , "strength" DOUBLE NOT NULL  DEFAULT 0, PRIMARY KEY ("fieldId", "CRMId"));' +
-                    'INSERT INTO "FieldMap" VALUES(1,2,\'First Name\',5);' +
-                    'INSERT INTO "FieldMap" VALUES(2,2,\'Last Name\',10);' + 
-                    'INSERT INTO "FieldMap" VALUES(7,2,\'Email\',50);' +
-                    'INSERT INTO "FieldMap" VALUES(9,2,\'Phone\',5);' +
-                    'INSERT INTO "FieldMap" VALUES(10,2,\'Home Phone\',5);' +
-                    'INSERT INTO "FieldMap" VALUES(11,2,\'Fax\',5);' +
-                    'INSERT INTO "FieldMap" VALUES(13,2,\'Mobile\',5);' +
-                    'INSERT INTO "FieldMap" VALUES(19,2,\'Other Street\',5);' +
-                    'INSERT INTO "FieldMap" VALUES(21,2,\'Other City\',5);' +
-                    'INSERT INTO "FieldMap" VALUES(22,2,\'Other State\',5);' + 
-                    'INSERT INTO "FieldMap" VALUES(23,2,\'Other Zip\',5);' +
-                    'INSERT INTO "FieldMap" VALUES(24,2,\'Other Country\',5);' +
-                    'INSERT INTO "FieldMap" VALUES(25,2,\'Mailing Street\',5);' +
-                    'INSERT INTO "FieldMap" VALUES(27,2,\'Mailing City\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(28,2,\'Mailing State\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(29,2,\'Mailing Zip\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(30,2,\'Mailing Country\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(31,2,\'Title\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(32,2,\'Department\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(33,2,\'Account Name\',15);'+
-                    'INSERT INTO "FieldMap" VALUES(34,2,\'Skype ID\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(47,2,\'CONTACTID\',250);'+
-                    'INSERT INTO "FieldMap" VALUES(51,2,\'Description\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(70,2,\'Due Date\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(75,2,\'Subject\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(85,2,\'Description\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(1,1,\'FirstName\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(2,1,\'LastName\',20);'+
-                    'INSERT INTO "FieldMap" VALUES(7,1,\'Email\',50);'+
-                    'INSERT INTO "FieldMap" VALUES(9,1,\'Phone\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(10,1,\'HomePhone\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(11,1,\'Fax\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(13,1,\'MobilePhone\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(19,1,\'OtherStreet\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(21,1,\'OtherCity\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(22,1,\'OtherState\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(23,1,\'OtherPostalCode\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(24,1,\'OtherCountry\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(25,1,\'MailingStreet\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(27,1,\'MailingCity\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(28,1,\'MailingState\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(29,1,\'MailingPostalCode\',5);'+
-                    'INSERT INTO "FieldMap" VALUES(30,1,\'MailingCountry\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(31,1,\'Title\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(32,1,\'Department\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(47,1,\'Id\',200);'+
-                    'INSERT INTO "FieldMap" VALUES(51,1,\'Description\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(70,1,\'ActivityDate\',0);'+
-                    'INSERT INTO "FieldMap" VALUES(75,1,\'Subject\',0);' +
+                    conn,
+                    'CREATE TABLE "FieldMap" ("fieldId" INTEGER NOT NULL , "CRMId" INTEGER NOT NULL , "crmField" VARCHAR NOT NULL , "strength" DOUBLE NOT NULL  DEFAULT 0, PRIMARY KEY ("fieldId", "CRMId"));' ,
+                    'INSERT INTO "FieldMap" VALUES(1,2,\'First Name\',5);' ,
+                    'INSERT INTO "FieldMap" VALUES(2,2,\'Last Name\',10);' , 
+                    'INSERT INTO "FieldMap" VALUES(7,2,\'Email\',50);' ,
+                    'INSERT INTO "FieldMap" VALUES(9,2,\'Phone\',5);' ,
+                    'INSERT INTO "FieldMap" VALUES(10,2,\'Home Phone\',5);' ,
+                    'INSERT INTO "FieldMap" VALUES(11,2,\'Fax\',5);' ,
+                    'INSERT INTO "FieldMap" VALUES(13,2,\'Mobile\',5);' ,
+                    'INSERT INTO "FieldMap" VALUES(19,2,\'Other Street\',5);' ,
+                    'INSERT INTO "FieldMap" VALUES(21,2,\'Other City\',5);' ,
+                    'INSERT INTO "FieldMap" VALUES(22,2,\'Other State\',5);' , 
+                    'INSERT INTO "FieldMap" VALUES(23,2,\'Other Zip\',5);' ,
+                    'INSERT INTO "FieldMap" VALUES(24,2,\'Other Country\',5);' ,
+                    'INSERT INTO "FieldMap" VALUES(25,2,\'Mailing Street\',5);' ,
+                    'INSERT INTO "FieldMap" VALUES(27,2,\'Mailing City\',5);',
+                    'INSERT INTO "FieldMap" VALUES(28,2,\'Mailing State\',5);',
+                    'INSERT INTO "FieldMap" VALUES(29,2,\'Mailing Zip\',5);',
+                    'INSERT INTO "FieldMap" VALUES(30,2,\'Mailing Country\',5);',
+                    'INSERT INTO "FieldMap" VALUES(31,2,\'Title\',0);',
+                    'INSERT INTO "FieldMap" VALUES(32,2,\'Department\',0);',
+                    'INSERT INTO "FieldMap" VALUES(33,2,\'Account Name\',15);',
+                    'INSERT INTO "FieldMap" VALUES(34,2,\'Skype ID\',0);',
+                    'INSERT INTO "FieldMap" VALUES(47,2,\'CONTACTID\',250);',
+                    'INSERT INTO "FieldMap" VALUES(51,2,\'Description\',0);',
+                    'INSERT INTO "FieldMap" VALUES(70,2,\'Due Date\',0);',
+                    'INSERT INTO "FieldMap" VALUES(75,2,\'Subject\',0);',
+                    'INSERT INTO "FieldMap" VALUES(85,2,\'Description\',0);',
+                    'INSERT INTO "FieldMap" VALUES(1,1,\'FirstName\',5);',
+                    'INSERT INTO "FieldMap" VALUES(2,1,\'LastName\',20);',
+                    'INSERT INTO "FieldMap" VALUES(7,1,\'Email\',50);',
+                    'INSERT INTO "FieldMap" VALUES(9,1,\'Phone\',5);',
+                    'INSERT INTO "FieldMap" VALUES(10,1,\'HomePhone\',5);',
+                    'INSERT INTO "FieldMap" VALUES(11,1,\'Fax\',5);',
+                    'INSERT INTO "FieldMap" VALUES(13,1,\'MobilePhone\',5);',
+                    'INSERT INTO "FieldMap" VALUES(19,1,\'OtherStreet\',0);',
+                    'INSERT INTO "FieldMap" VALUES(21,1,\'OtherCity\',0);',
+                    'INSERT INTO "FieldMap" VALUES(22,1,\'OtherState\',0);',
+                    'INSERT INTO "FieldMap" VALUES(23,1,\'OtherPostalCode\',0);',
+                    'INSERT INTO "FieldMap" VALUES(24,1,\'OtherCountry\',0);',
+                    'INSERT INTO "FieldMap" VALUES(25,1,\'MailingStreet\',5);',
+                    'INSERT INTO "FieldMap" VALUES(27,1,\'MailingCity\',5);',
+                    'INSERT INTO "FieldMap" VALUES(28,1,\'MailingState\',5);',
+                    'INSERT INTO "FieldMap" VALUES(29,1,\'MailingPostalCode\',5);',
+                    'INSERT INTO "FieldMap" VALUES(30,1,\'MailingCountry\',0);',
+                    'INSERT INTO "FieldMap" VALUES(31,1,\'Title\',0);',
+                    'INSERT INTO "FieldMap" VALUES(32,1,\'Department\',0);',
+                    'INSERT INTO "FieldMap" VALUES(47,1,\'Id\',200);',
+                    'INSERT INTO "FieldMap" VALUES(51,1,\'Description\',0);',
+                    'INSERT INTO "FieldMap" VALUES(70,1,\'ActivityDate\',0);',
+                    'INSERT INTO "FieldMap" VALUES(75,1,\'Subject\',0);' ,
                     'INSERT INTO "FieldMap" VALUES(85,1,\'Description\',0);'
                 );
                 GriffinCommon.ensureDatabaseTable("ObjectMap",
-                    'CREATE TABLE "ObjectMap" ("ObjectId" INTEGER PRIMARY KEY  AUTOINCREMENT  NOT NULL , "CRMId" INTEGER NOT NULL , "TBirdObject" varchar NOT NULL , "CRMObject" VARCHAR NOT NULL );' + 
-                    'INSERT INTO "ObjectMap" VALUES(1,1,\'Contact\',\'Contact\');' +
-                    'INSERT INTO "ObjectMap" VALUES(2,1,\'Task\',\'Task\');' +
-                    'INSERT INTO "ObjectMap" VALUES(3,2,\'Task\',\'Tasks\');' +
+                    conn,
+                    'CREATE TABLE "ObjectMap" ("ObjectId" INTEGER PRIMARY KEY  AUTOINCREMENT  NOT NULL , "CRMId" INTEGER NOT NULL , "TBirdObject" varchar NOT NULL , "CRMObject" VARCHAR NOT NULL );' , 
+                    'INSERT INTO "ObjectMap" VALUES(1,1,\'Contact\',\'Contact\');' ,
+                    'INSERT INTO "ObjectMap" VALUES(2,1,\'Task\',\'Task\');' ,
+                    'INSERT INTO "ObjectMap" VALUES(3,2,\'Task\',\'Tasks\');' ,
                     'INSERT INTO "ObjectMap" VALUES(4,2,\'Contact\',\'Contacts\');'
                 );
                 GriffinCommon.ensureDatabaseTable("TBirdFields",
-                    'CREATE TABLE "TBirdFields" ("fieldId" INTEGER PRIMARY KEY  NOT NULL ,"object" VARCHAR NOT NULL ,"tbirdField" VARCHAR NOT NULL ,"label" VARCHAR);' +
-                    'INSERT INTO "TBirdFields" VALUES(1,\'Contact\',\'firstName\',\'Contact.firstName\');' +
-                    'INSERT INTO "TBirdFields" VALUES(2,\'Contact\',\'lastName\',\'Contact.lastName\');' +
-                    'INSERT INTO "TBirdFields" VALUES(3,\'Contact\',\'phoneticFirstName\',\'Contact.phoneticFirstName\');' +
-                    'INSERT INTO "TBirdFields" VALUES(4,\'Contact\',\'phoneticLastName\',\'Contact.phoneticLastName\');' +
-                    'INSERT INTO "TBirdFields" VALUES(5,\'Contact\',\'displayName\',\'Contact.displayName\');' +
-                    'INSERT INTO "TBirdFields" VALUES(6,\'Contact\',\'nickName\',\'Contact.nickName\');' +
-                    'INSERT INTO "TBirdFields" VALUES(7,\'Contact\',\'primaryEmail\',\'Contact.primaryEmail\');' +
-                    'INSERT INTO "TBirdFields" VALUES(8,\'Contact\',\'secondEmail\',\'Contact.secondEmail\');' +
-                    'INSERT INTO "TBirdFields" VALUES(9,\'Contact\',\'workPhone\',\'Contact.workPhone\');' +
-                    'INSERT INTO "TBirdFields" VALUES(10,\'Contact\',\'homePhone\',\'Contact.homePhone\');' +
-                    'INSERT INTO "TBirdFields" VALUES(11,\'Contact\',\'faxNumber\',\'Contact.faxNumber\');' +
-                    'INSERT INTO "TBirdFields" VALUES(12,\'Contact\',\'pagerNumber\',\'Contact.pagerNumber\');' +
-                    'INSERT INTO "TBirdFields" VALUES(13,\'Contact\',\'cellularNumber\',\'Contact.cellularNumber\');' +
-                    'INSERT INTO "TBirdFields" VALUES(14,\'Contact\',\'workPhoneType\',\'Contact.workPhoneType\');' +
-                    'INSERT INTO "TBirdFields" VALUES(15,\'Contact\',\'homePhoneType\',\'Contact.homePhoneType\');' +
-                    'INSERT INTO "TBirdFields" VALUES(16,\'Contact\',\'faxNumberType\',\'Contact.faxNumberType\');' +
-                    'INSERT INTO "TBirdFields" VALUES(17,\'Contact\',\'pagerNumberType\',\'Contact.pagerNumberType\');' +
-                    'INSERT INTO "TBirdFields" VALUES(18,\'Contact\',\'cellularNumberType\',\'Contact.cellularNumberType\');' +
-                    'INSERT INTO "TBirdFields" VALUES(19,\'Contact\',\'homeAddress\',\'Contact.homeAddress\');' +
-                    'INSERT INTO "TBirdFields" VALUES(20,\'Contact\',\'homeAddress2\',\'Contact.homeAddress2\');' +
-                    'INSERT INTO "TBirdFields" VALUES(21,\'Contact\',\'homeCity\',\'Contact.homeCity\');' +
-                    'INSERT INTO "TBirdFields" VALUES(22,\'Contact\',\'homeState\',\'Contact.homeState\');' +
-                    'INSERT INTO "TBirdFields" VALUES(23,\'Contact\',\'homeZipCode\',\'Contact.homeZipCode\');' +
-                    'INSERT INTO "TBirdFields" VALUES(24,\'Contact\',\'homeCountry\',\'Contact.homeCountry\');' +
-                    'INSERT INTO "TBirdFields" VALUES(25,\'Contact\',\'workAddress\',\'Contact.workAddress\');' +
-                    'INSERT INTO "TBirdFields" VALUES(26,\'Contact\',\'workAddress2\',\'Contact.workAddress2\');' +
-                    'INSERT INTO "TBirdFields" VALUES(27,\'Contact\',\'workCity\',\'Contact.workCity\');' +
-                    'INSERT INTO "TBirdFields" VALUES(28,\'Contact\',\'workState\',\'Contact.workState\');' +
-                    'INSERT INTO "TBirdFields" VALUES(29,\'Contact\',\'workZipCode\',\'Contact.workZipCode\');' +
-                    'INSERT INTO "TBirdFields" VALUES(30,\'Contact\',\'workCountry\',\'Contact.workCountry\');' +
-                    'INSERT INTO "TBirdFields" VALUES(31,\'Contact\',\'jobTitle\',\'Contact.jobTitle\');' +
-                    'INSERT INTO "TBirdFields" VALUES(32,\'Contact\',\'department\',\'Contact.department\');' +
-                    'INSERT INTO "TBirdFields" VALUES(33,\'Contact\',\'company\',\'Contact.company\');' +
-                    'INSERT INTO "TBirdFields" VALUES(34,\'Contact\',\'aimScreenName\',\'Contact.aimScreenName\');' +
-                    'INSERT INTO "TBirdFields" VALUES(35,\'Contact\',\'anniversaryYear\',\'Contact.anniversaryYear\');' +
-                    'INSERT INTO "TBirdFields" VALUES(36,\'Contact\',\'anniversaryMonth\',\'Contact.anniversaryMonth\');' +
-                    'INSERT INTO "TBirdFields" VALUES(37,\'Contact\',\'anniversaryDay\',\'Contact.anniversaryDay\');' +
-                    'INSERT INTO "TBirdFields" VALUES(38,\'Contact\',\'spouseName\',\'Contact.spouseName\');' +
-                    'INSERT INTO "TBirdFields" VALUES(39,\'Contact\',\'familyName\',\'Contact.familyName\');' +
-                    'INSERT INTO "TBirdFields" VALUES(40,\'Contact\',\'defaultAddress\',\'Contact.defaultAddress\');' +
-                    'INSERT INTO "TBirdFields" VALUES(41,\'Contact\',\'category\',\'Contact.category\');' +
-                    'INSERT INTO "TBirdFields" VALUES(42,\'Contact\',\'webPage1\',\'Contact.webPage1\');' +
-                    'INSERT INTO "TBirdFields" VALUES(43,\'Contact\',\'webPage2\',\'Contact.webPage2\');' +
-                    'INSERT INTO "TBirdFields" VALUES(44,\'Contact\',\'birthYear\',\'Contact.birthYear\');' +
-                    'INSERT INTO "TBirdFields" VALUES(45,\'Contact\',\'birthMonth\',\'Contact.birthMonth\');' +
-                    'INSERT INTO "TBirdFields" VALUES(46,\'Contact\',\'birthDay\',\'Contact.birthDay\');' +
-                    'INSERT INTO "TBirdFields" VALUES(47,\'Contact\',\'custom1\',\'Contact.custom1\');' +
-                    'INSERT INTO "TBirdFields" VALUES(48,\'Contact\',\'custom2\',\'Contact.custom2\');' +
-                    'INSERT INTO "TBirdFields" VALUES(49,\'Contact\',\'custom3\',\'Contact.custom3\');' +
-                    'INSERT INTO "TBirdFields" VALUES(50,\'Contact\',\'custom4\',\'Contact.custom4\');' +
-                    'INSERT INTO "TBirdFields" VALUES(51,\'Contact\',\'notes\',\'Contact.notes\');' +
-                    'INSERT INTO "TBirdFields" VALUES(52,\'Contact\',\'lastModifiedDate\',\'Contact.lastModifiedDate\');' +
-                    'INSERT INTO "TBirdFields" VALUES(53,\'Contact\',\'popularityIndex\',\'Contact.popularityIndex\');' +
-                    'INSERT INTO "TBirdFields" VALUES(54,\'Contact\',\'preferMailFormat\',\'Contact.preferMailFormat\');' +
-                    'INSERT INTO "TBirdFields" VALUES(55,\'Contact\',\'isMailList\',\'Contact.isMailList\');' +
-                    'INSERT INTO "TBirdFields" VALUES(56,\'Contact\',\'mailListURI\',\'Contact.mailListURI\');' +
-                    'INSERT INTO "TBirdFields" VALUES(57,\'Contact\',\'allowRemoteContent\',\'Contact.allowRemoteContent\');' +
-                    'INSERT INTO "TBirdFields" VALUES(58,\'Task\',\'isRead\',\'Task.isRead\');' +
-                    'INSERT INTO "TBirdFields" VALUES(59,\'Task\',\'isFlagged\',\'Task.isFlagged\');' +
-                    'INSERT INTO "TBirdFields" VALUES(60,\'Task\',\'priority\',\'Task.priority\');' +
-                    'INSERT INTO "TBirdFields" VALUES(61,\'Task\',\'flags\',\'Task.flags\');' +
-                    'INSERT INTO "TBirdFields" VALUES(62,\'Task\',\'threadId\',\'Task.threadId\');' +
-                    'INSERT INTO "TBirdFields" VALUES(63,\'Task\',\'messageKey\',\'Task.messageKey\');' +
-                    'INSERT INTO "TBirdFields" VALUES(64,\'Task\',\'threadParent\',\'Task.threadParent\');' +
-                    'INSERT INTO "TBirdFields" VALUES(65,\'Task\',\'messageSize\',\'Task.messageSize\');' +
-                    'INSERT INTO "TBirdFields" VALUES(66,\'Task\',\'lineCount\',\'Task.lineCount\');' +
-                    'INSERT INTO "TBirdFields" VALUES(67,\'Task\',\'statusOffset\',\'Task.statusOffset\');' +
-                    'INSERT INTO "TBirdFields" VALUES(68,\'Task\',\'messageOffset\',\'Task.messageOffset\');' +
-                    'INSERT INTO "TBirdFields" VALUES(69,\'Task\',\'offlineMessageSize\',\'Task.offlineMessageSize\');' +
-                    'INSERT INTO "TBirdFields" VALUES(70,\'Task\',\'date\',\'Task.date\');' +
-                    'INSERT INTO "TBirdFields" VALUES(71,\'Task\',\'dateInSeconds\',\'Task.dateInSeconds\');' +
-                    'INSERT INTO "TBirdFields" VALUES(72,\'Task\',\'messageId\',\'Task.messageId\');' +
-                    'INSERT INTO "TBirdFields" VALUES(73,\'Task\',\'ccList\',\'Task.ccList\');' +
-                    'INSERT INTO "TBirdFields" VALUES(74,\'Task\',\'author\',\'Task.author\');' +
-                    'INSERT INTO "TBirdFields" VALUES(75,\'Task\',\'subject\',\'Task.subject\');' +
-                    'INSERT INTO "TBirdFields" VALUES(76,\'Task\',\'recipients\',\'Task.recipients\');' +
-                    'INSERT INTO "TBirdFields" VALUES(77,\'Task\',\'numReferences\',\'Task.numReferences\');' +
-                    'INSERT INTO "TBirdFields" VALUES(78,\'Task\',\'mime2DecodedAuthor\',\'Task.mime2DecodedAuthor\');' +
-                    'INSERT INTO "TBirdFields" VALUES(79,\'Task\',\'mime2DecodedSubject\',\'Task.mime2DecodedSubject\');' +
-                    'INSERT INTO "TBirdFields" VALUES(80,\'Task\',\'mime2DecodedRecipients\',\'Task.mime2DecodedRecipients\');' +
-                    'INSERT INTO "TBirdFields" VALUES(81,\'Task\',\'Charset\',\'Task.Charset\');' +
-                    'INSERT INTO "TBirdFields" VALUES(82,\'Task\',\'label\',\'Task.label\');' +
-                    'INSERT INTO "TBirdFields" VALUES(83,\'Task\',\'accountKey\',\'Task.accountKey\');' +
-                    'INSERT INTO "TBirdFields" VALUES(84,\'Task\',\'folder\',\'Task.folder\');' +
+                    conn,
+                    'CREATE TABLE "TBirdFields" ("fieldId" INTEGER PRIMARY KEY  NOT NULL ,"object" VARCHAR NOT NULL ,"tbirdField" VARCHAR NOT NULL ,"label" VARCHAR);' ,
+                    'INSERT INTO "TBirdFields" VALUES(1,\'Contact\',\'firstName\',\'Contact.firstName\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(2,\'Contact\',\'lastName\',\'Contact.lastName\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(3,\'Contact\',\'phoneticFirstName\',\'Contact.phoneticFirstName\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(4,\'Contact\',\'phoneticLastName\',\'Contact.phoneticLastName\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(5,\'Contact\',\'displayName\',\'Contact.displayName\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(6,\'Contact\',\'nickName\',\'Contact.nickName\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(7,\'Contact\',\'primaryEmail\',\'Contact.primaryEmail\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(8,\'Contact\',\'secondEmail\',\'Contact.secondEmail\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(9,\'Contact\',\'workPhone\',\'Contact.workPhone\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(10,\'Contact\',\'homePhone\',\'Contact.homePhone\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(11,\'Contact\',\'faxNumber\',\'Contact.faxNumber\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(12,\'Contact\',\'pagerNumber\',\'Contact.pagerNumber\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(13,\'Contact\',\'cellularNumber\',\'Contact.cellularNumber\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(14,\'Contact\',\'workPhoneType\',\'Contact.workPhoneType\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(15,\'Contact\',\'homePhoneType\',\'Contact.homePhoneType\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(16,\'Contact\',\'faxNumberType\',\'Contact.faxNumberType\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(17,\'Contact\',\'pagerNumberType\',\'Contact.pagerNumberType\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(18,\'Contact\',\'cellularNumberType\',\'Contact.cellularNumberType\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(19,\'Contact\',\'homeAddress\',\'Contact.homeAddress\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(20,\'Contact\',\'homeAddress2\',\'Contact.homeAddress2\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(21,\'Contact\',\'homeCity\',\'Contact.homeCity\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(22,\'Contact\',\'homeState\',\'Contact.homeState\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(23,\'Contact\',\'homeZipCode\',\'Contact.homeZipCode\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(24,\'Contact\',\'homeCountry\',\'Contact.homeCountry\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(25,\'Contact\',\'workAddress\',\'Contact.workAddress\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(26,\'Contact\',\'workAddress2\',\'Contact.workAddress2\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(27,\'Contact\',\'workCity\',\'Contact.workCity\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(28,\'Contact\',\'workState\',\'Contact.workState\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(29,\'Contact\',\'workZipCode\',\'Contact.workZipCode\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(30,\'Contact\',\'workCountry\',\'Contact.workCountry\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(31,\'Contact\',\'jobTitle\',\'Contact.jobTitle\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(32,\'Contact\',\'department\',\'Contact.department\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(33,\'Contact\',\'company\',\'Contact.company\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(34,\'Contact\',\'aimScreenName\',\'Contact.aimScreenName\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(35,\'Contact\',\'anniversaryYear\',\'Contact.anniversaryYear\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(36,\'Contact\',\'anniversaryMonth\',\'Contact.anniversaryMonth\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(37,\'Contact\',\'anniversaryDay\',\'Contact.anniversaryDay\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(38,\'Contact\',\'spouseName\',\'Contact.spouseName\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(39,\'Contact\',\'familyName\',\'Contact.familyName\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(40,\'Contact\',\'defaultAddress\',\'Contact.defaultAddress\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(41,\'Contact\',\'category\',\'Contact.category\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(42,\'Contact\',\'webPage1\',\'Contact.webPage1\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(43,\'Contact\',\'webPage2\',\'Contact.webPage2\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(44,\'Contact\',\'birthYear\',\'Contact.birthYear\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(45,\'Contact\',\'birthMonth\',\'Contact.birthMonth\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(46,\'Contact\',\'birthDay\',\'Contact.birthDay\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(47,\'Contact\',\'custom1\',\'Contact.custom1\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(48,\'Contact\',\'custom2\',\'Contact.custom2\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(49,\'Contact\',\'custom3\',\'Contact.custom3\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(50,\'Contact\',\'custom4\',\'Contact.custom4\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(51,\'Contact\',\'notes\',\'Contact.notes\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(52,\'Contact\',\'lastModifiedDate\',\'Contact.lastModifiedDate\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(53,\'Contact\',\'popularityIndex\',\'Contact.popularityIndex\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(54,\'Contact\',\'preferMailFormat\',\'Contact.preferMailFormat\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(55,\'Contact\',\'isMailList\',\'Contact.isMailList\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(56,\'Contact\',\'mailListURI\',\'Contact.mailListURI\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(57,\'Contact\',\'allowRemoteContent\',\'Contact.allowRemoteContent\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(58,\'Task\',\'isRead\',\'Task.isRead\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(59,\'Task\',\'isFlagged\',\'Task.isFlagged\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(60,\'Task\',\'priority\',\'Task.priority\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(61,\'Task\',\'flags\',\'Task.flags\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(62,\'Task\',\'threadId\',\'Task.threadId\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(63,\'Task\',\'messageKey\',\'Task.messageKey\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(64,\'Task\',\'threadParent\',\'Task.threadParent\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(65,\'Task\',\'messageSize\',\'Task.messageSize\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(66,\'Task\',\'lineCount\',\'Task.lineCount\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(67,\'Task\',\'statusOffset\',\'Task.statusOffset\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(68,\'Task\',\'messageOffset\',\'Task.messageOffset\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(69,\'Task\',\'offlineMessageSize\',\'Task.offlineMessageSize\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(70,\'Task\',\'date\',\'Task.date\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(71,\'Task\',\'dateInSeconds\',\'Task.dateInSeconds\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(72,\'Task\',\'messageId\',\'Task.messageId\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(73,\'Task\',\'ccList\',\'Task.ccList\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(74,\'Task\',\'author\',\'Task.author\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(75,\'Task\',\'subject\',\'Task.subject\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(76,\'Task\',\'recipients\',\'Task.recipients\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(77,\'Task\',\'numReferences\',\'Task.numReferences\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(78,\'Task\',\'mime2DecodedAuthor\',\'Task.mime2DecodedAuthor\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(79,\'Task\',\'mime2DecodedSubject\',\'Task.mime2DecodedSubject\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(80,\'Task\',\'mime2DecodedRecipients\',\'Task.mime2DecodedRecipients\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(81,\'Task\',\'Charset\',\'Task.Charset\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(82,\'Task\',\'label\',\'Task.label\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(83,\'Task\',\'accountKey\',\'Task.accountKey\');' ,
+                    'INSERT INTO "TBirdFields" VALUES(84,\'Task\',\'folder\',\'Task.folder\');' ,
                     'INSERT INTO "TBirdFields" VALUES(85,\'Task\',\'body\',\'Task.body\');'
                 );
             },
