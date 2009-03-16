@@ -8,11 +8,13 @@ var GriffinOptions = {
     onLoad: function() {
         try{
             // try to log in. if unsuccessful give up. avoids attempts to log in from two panels at once.
-            GriffinCommon.ensureLogin(function(){                
-                GriffinOptions.initGeneralPanel();
-                GriffinOptions.initContactPanel();
-                GriffinOptions.initTaskPanel();
-            });
+            GriffinCommon.ensureLogin(
+                function(){                
+                    GriffinOptions.initGeneralPanel();
+                    GriffinOptions.initContactPanel();
+                    GriffinOptions.initTaskPanel();
+                }
+            );
         } catch (e) {
             Griffin.Logger.log(e, true, false, true);
         }
