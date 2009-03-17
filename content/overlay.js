@@ -24,6 +24,7 @@ var GriffinMessage = {
         GriffinMessage.addressListen();
         GriffinMessage.scheduleSynch();
         GriffinCommon.ensureDatabase();
+        Griffin.Logger.log("Griffin Status", false, true);
     },
 
     ensureSalesforceSynchFolder: function(){
@@ -146,12 +147,13 @@ var GriffinMessage = {
     
         saveCardsToCRM: function(){
            GriffinMessage.gfn_addressBookListener.timeout = null;
-            GriffinCommon.ensureLogin(
+           GriffinCommon.ensureLogin(
                 function(){
                     var synchContactDir = Griffin.Prefs.getPrefValue("synchContactDir", "string");
                     var cards = GriffinMessage.gfn_addressBookListener.cardsToSave;
                     if(synchContactDir == "BOTH" ||
                         synchContactDir == "TBIRD") {
+                        Griffin.Logger.log("Updating " + cards.length + " contacts in CRM.", true, true);
                         var myObj = GriffinCommon.getCrmObjectFromTbirdObject("Contact");
                         var fieldMap = GriffinCommon.getFieldMap("Contact");
                         for(var i = 0; i < cards.length; i++){
@@ -159,7 +161,7 @@ var GriffinMessage = {
                             var crmContact = GriffinMessage.gfn_addressBookListener.setContactVals(contact, fieldMap);
                             var id = GriffinCommon.api.upsert(myObj, crmContact);
                             if(id != null){
-                                Griffin.Logger.log("Sucessfully added contact to CRM.", true, true);
+                                Griffin.Logger.log("Sucessfully added contact to CRM.", true);
                                 GriffinMessage.addressUnListen();
                                 // TODO: fix up the id mapping on card creation.
                                 cards[i].card.custom1 = id;
@@ -167,15 +169,16 @@ var GriffinMessage = {
                                 GriffinMessage.addressListen();
                             }
                             else
-                            {                    
-                                Griffin.Logger.log("Sucessfully updated contact in CRM.", true, true);
+                            {
+                                Griffin.Logger.log("Sucessfully updated contact in CRM.", true);
                             }
                         }
                     }
+                    Griffin.Logger.log("Griffin Status", false, true);
                     // Clear the array of cards to save.
                     cards.length = 0;
                 }
-            ); 
+            );
         },
     
         setContactVals: function(card, fieldMap){
@@ -187,7 +190,7 @@ var GriffinMessage = {
             return contact;
         },
     
-        beginSaveCard: function(card, folder){
+        beginSaveCard: function(card){
             try{
                 card.QueryInterface(Components.interfaces.nsIAbCard);
             }
@@ -195,17 +198,29 @@ var GriffinMessage = {
                 // Not interested if it's not a card.
                 return;
             }
-            GriffinMessage.gfn_addressBookListener.cardsToSave.push({card: card, folder: folder});
+            GriffinMessage.gfn_addressBookListener.cardsToSave.push(card);
             var timeout = Griffin.Prefs.getPrefValue("messageBatchingTimeout", "int");
             if(GriffinMessage.gfn_addressBookListener.timeout != null){
                 window.clearTimeout(GriffinMessage.gfn_addressBookListener.timeout);
             }
             GriffinMessage.gfn_addressBookListener.timeout = window.setTimeout("GriffinMessage.gfn_addressBookListener.saveCardsToCRM();", timeout);
+
         },      
     
         onItemAdded: function(parentDir, item ){
             Griffin.Logger.log("function: onItemAdded\nparentDir: " + parentDir + "\nitem: " + item, true);
-            GriffinMessage.gfn_addressBookListener.beginSaveCard(item, parentDir);
+            try{
+                parentDir.QueryInterface(Components.interfaces.nsIAbDirectory);
+            }
+            catch (e) {
+                // Folder isn't a folder... do nothing?
+                Griffin.Logger.log(e, true);
+                return;
+            }
+            var synchAddrBook = Griffin.Prefs.getPrefValue("synchAddrBook", "string");
+            if(synchAddrBook == "ALL" || parentDir.directoryProperties.URI == synchAddrBook){
+                GriffinMessage.gfn_addressBookListener.beginSaveCard(item, parentDir);
+            }
         },
         
         // TODO: only save if a synch property changes, not just any property?
@@ -215,7 +230,7 @@ var GriffinMessage = {
         },
         
         onItemRemoved: function(parentDir, item ){
-            Griffin.Logger.log("function: onItemRemoved\nparentDir: " + parentDir + "\nitem: " + item, true);
+            //Griffin.Logger.log("function: onItemRemoved\nparentDir: " + parentDir + "\nitem: " + item, true);
             //TODO: Need to synch deletions between salesforce and thunderbird.
         }
     },
