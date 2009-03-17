@@ -287,7 +287,7 @@ Griffin.Crm.prototype.getFields = function(type, callback){};
 // Return an array of ids of newly created object Ids. Must preserve ordering of inputs!
 Griffin.Crm.prototype.insert = function(type, arrRecords){}; 
 
-// Update or insert, based on the existance of the uniqueId for this crm. returns id if inserted.
+// Update or insert, based on the existance of the uniqueId for this crm. Returns id if inserted.
 // records *MUST* have the correct uniqueId populated if an update is to be performed.
 Griffin.Crm.prototype.upsert = function(type, record){};
  
@@ -330,7 +330,29 @@ Griffin.SupportedCRMs.Salesforce.idFieldFromType = function(type){
     return "Id";
 }
 
-//TODO: Salesforce upsert.
+Griffin.SupportedCRMs.Salesforce.upsert = function(type, record){
+    var sObj = new SOAPClientParameters();
+    sObj.add("type", type);
+    for(prop in record){        
+        if(typeof(record[prop]) != "function"){
+            sObj.add(prop, record[prop]);
+        }
+    }
+    var params = new SOAPClientParameters();    
+    params.add("externalIDFieldName", this.idFieldFromType(type));
+    params.add("sObjects", sObj);
+    var result = this.invoke("upsert", params, this._getHeader());
+    if(result.upsertResponse){
+        if(result.upsertResponse.result.created){
+            return result.upsertResponse.result.id;
+        }
+        else
+            return null;
+    }
+    else
+        throw result.Fault
+}
+
 Griffin.SupportedCRMs.Salesforce.insert = function(type, sObjects, callback){
     var header = this._getHeader();
     var sObjectsParams = new SOAPClientParameters();
@@ -345,19 +367,18 @@ Griffin.SupportedCRMs.Salesforce.insert = function(type, sObjects, callback){
         }
         sObjectsParams.add("sObjects", currObj);
     }
-    var result = this.invoke("create", sObjectsParams, header, {
+    this.invoke("create", sObjectsParams, header, {
         onSuccess: function(ret){
-            callback(ret.createResponse.result.success);
+            if(result.createResponse){
+                callback(ret.createResponse.result.success);
+            }
+            else 
+                throw result.Fault
         },
         onFailure: function(err){
             throw err;
         }
     });
-    if(result.createResponse){
-        return result.createResponse.result.success;
-    } else {
-        throw result.Fault;
-    }
 };
 
 Griffin.SupportedCRMs.Salesforce.getFields = function(obj, callback){

@@ -107,7 +107,7 @@ if(!GriffinCommon || GriffinCommon == null){
             },
             
             ensureDatabaseTable: function(tableName, conn, tablePopulationScripts){
-                Griffin.Logger.log("Validating table " + tableName, true, true);
+                //Griffin.Logger.log("Validating table " + tableName, true);
                 var tableExistsStmt = conn.createStatement('pragma table_info("' + tableName + '");');
                 try{
                     var exists = tableExistsStmt.executeStep();
@@ -116,10 +116,10 @@ if(!GriffinCommon || GriffinCommon == null){
                     tableExistsStmt.reset();
                 }
                 if(!exists){
-                    Griffin.Logger.log("Creating table " + tableName, true, true);
-                    for(var stmt = 3; stmt < ensureDatabaseTable.arguments.length; stmt++){
-                        Griffin.Logger.log(ensureDatabaseTable.arguments[stmt]);
-                        var tableCreateStmt = conn.createStatement(ensureDatabaseTable.arguments[stmt]);
+                    Griffin.Logger.log("Creating table " + tableName, true);
+                    for(var stmt = 2; stmt < arguments.length; stmt++){
+                        Griffin.Logger.log(arguments[stmt]);
+                        var tableCreateStmt = conn.createStatement(arguments[stmt]);
                         tableCreateStmt.execute();
                         tableCreateStmt.reset();
                     }
@@ -387,7 +387,7 @@ if(!GriffinCommon || GriffinCommon == null){
                     var keepGoing = 1;
                     try{
                         childCards.first();
-                    }catch(err){
+                    } catch(err){
                         keepGoing = 0;
                     }
                     while(keepGoing == 1){
